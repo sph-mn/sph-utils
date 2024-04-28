@@ -1,0 +1,7 @@
+#!/bin/sh
+
+mkdir -p $prefix
+for name in splice is-empty-directory unique-name
+do
+  ln -sf $PWD/exe/compiled/$name /usr/bin/$name
+done

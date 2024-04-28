@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# considers hidden files, duplicates, directories, file names with spaces
+
+splice="$PWD/exe/compiled/splice"
+root=/tmp/test-splice
+if test -d $root
+then
+  rm -r "$root"
+fi
+
+mkdir -p $root
+cd $root
+
+mkdir -p d1/d1.2
+mkdir -p d2
+touch d1/f1 "d1/f2 x" d1/.f3 "d2/f2 x"
+echo important > "f2 x"
+mkdir -p d3
+touch d3/f4
+
+$splice -1 d1 d3
+$splice d1 d2
+
+if test -f "f1" && test -f ".f3" && test -f "f2 x" && test -f "f2 x.1" && test -f "f2 x.2" && test -d d1.2 && ! test -d d2 && ! test -d d1 && ! test -d d3 && test -f f4
+then
+  f2_content="$(cat "f2 x")"
+  if test important = $f2_content
+  then
+    echo test successful
+    exit 0
+  fi
+fi
+
+echo test failed
+
+exit 1
