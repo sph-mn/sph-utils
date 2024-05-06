@@ -20,7 +20,7 @@ void cli(int argc, char** argv, size_t* directories_count, uint8_t*** directorie
       *single = 1;
     }
     else if ('h' == opt) {
-      print(1, help_text, "usage: splice directory ...\n"
+      print(1, help_text, "arguments: directory ...\n"
         "description\n"
         "  merge the files of the given directories with their parent directories.\n"
         "  files with duplicate names are kept by renaming.\n"

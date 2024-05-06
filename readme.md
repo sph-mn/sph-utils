@@ -46,6 +46,12 @@ displays the given path if it does not exist. otherwise, increments a counter su
 
 one use case is to rename or move files without overwriting files that have the same name.
 
+# line-length
+reads from standard input and writes the byte character count of each line to standard output. unicode multibyte characters are counted as multiple characters.
+this is a performance optimized version. example run time: 5335407 lines, 0m6.532s.
+
+for comparison, the "wc" utility needs to be called per line, which is much slower.
+
 # see also
 * [sph-script](https://github.com/sph-mn/sph-script)
 * [sbase](https://git.suckless.org/sbase/file/README.html)
