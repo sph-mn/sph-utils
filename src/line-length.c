@@ -5,7 +5,7 @@
 
 #define buffer_size 16384
 
-inline uint8_t u32_digits(uint32_t n) {
+uint8_t u32_digits(uint32_t n) {
   if (n < 10) return 1;
   if (n < 100) return 2;
   if (n < 1000) return 3;

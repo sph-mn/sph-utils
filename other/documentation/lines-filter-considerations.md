@@ -34,7 +34,7 @@
 * pass offsets to other threads until distributed
 
 ## threads
-* use thread-pool to avoid frequent forking. thread-pool starts the threads at once though, need feature to start as needed
+* use growing thread-pool to avoid frequent forking
 * read the first n page-aligned bytes from file to check if binary file (use pread to use offset)
 * check for binary
 * if binary skip file
@@ -126,6 +126,8 @@ even though tools like ripgrep are already fast, lines-filter might be able to b
 * far lower code size and complexity (one 500L c file, vs 50000L in 211 files for rg)
 * far reduced feature set (no utf-16, no reporting contextual lines, no line numbers, et cetera)
 * interleaved state transition matrix
+* evaluate memchr
+* use simple thread pool with wait and notify
 
 ## reading
 * [the design of ripgrep](https://blog.burntsushi.net/ripgrep/), [code and search algorithms of ripgrep](https://github.com/BurntSushi/aho-corasick/tree/master)
@@ -142,12 +144,14 @@ even though tools like ripgrep are already fast, lines-filter might be able to b
   * "ugrep --color=never --format="%f%~" --ignore-files --exclude=.git -jUIR -m1 -% "$pattern" | uniq"
 * grep process chain
   * grep [| grep] ...
+* [ucg](https://github.com/gvansickle/ucg)
 * a program that reads files from paths given on standard input (fcat). it copies the file content to standard output (thereby converting files into one data stream). lines-filter must then only support reading from standard input
   * find | fcat | lines-filter
   * source file paths not available to lines-filter
   * extra read and write for copying the file content
 * find | xargs cat | lines-filter. surprisingly slow
 time find . -type d \( -name node_modules -o -name .git -o -name cache -o -name vendor \) -prune -o -type f -print | g -F .php | xargs cat
+
 
 ## stopping after the first match
 * if a file is read by multiple threads, not all threads can be immediately stopped. however, a thread encountering a match can stop its processing
