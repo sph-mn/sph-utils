@@ -3,7 +3,8 @@
 #define path_initial_length 400
 #define paths_initial_count 10000
 #define paths_initial_data_size paths_initial_count * path_initial_length
-#define growth_factor 3
+#define data_growth_factor 3
+#define max_thread_count 16
 #define lines_filter_config
 #endif
 
@@ -41,15 +42,14 @@ const uint8_t case_table[] = {
 const uint8_t cli_help_text[] = "arguments: [options] pattern ...\n"
   "description\n"
   "  read from standard input and filter lines by given strings.\n"
-  "  matches portions for long lines.\n"
   "options\n"
-  "  -f read filesystem paths from standard input and filter file content, prefixing the file name to matching lines\n"
+  "  -f read filesystem paths from standard input and read file content, prefixing the file name to matching lines\n"
   "  -h show this help text\n"
-  "  -s display source file name only. may be displayed multiple times"
   "  -n negate\n"
   "  -o matching lines must contain only one of the patterns\n"
   "  -v display the current version number\n";
 
+const uint8_t invalid_character_text[] = "invalid character. only characters in the ascii range 20 to 126 are accepted\n";
 const uint8_t cli_version_text[] = "v0.1\n";
 
 uint8_t cli(int argc, char** argv, uint16_t* patterns_count, uint8_t*** patterns) {
@@ -77,6 +77,17 @@ uint8_t cli(int argc, char** argv, uint16_t* patterns_count, uint8_t*** patterns
   return options;
 }
 
+static uint8_t* memmem64(const uint8_t* data, size_t size, const uint8_t* pattern)
+{
+  // size must be >= 8. both data and pattern must be aligned for 64 bit access.
+  uint64_t a = *(uint64_t*)data;
+  uint64_t b = *(const uint64_t*)pattern;
+  a += 8;
+  size -= 8;
+  for (; size; size -= 1, a = (a << 8) | *data++) if (b == a) return (uint8_t*)data - 8;
+  return b == a ? (uint8_t*)data - 8 : 0;
+}
+
 void read_paths(char delimiter, uint8_t** data, uint32_t** indexes, uint32_t* indexes_used) {
   // read delimiter-terminated paths from standard input.
   // all paths must end with the delimiter.
@@ -95,16 +106,16 @@ void read_paths(char delimiter, uint8_t** data, uint32_t** indexes, uint32_t* in
   *indexes_used = 1;
   while (0 < read(0, *data + data_used, paths_initial_data_size / 2)) {
     if (data_size < data_used + read_size + paths_initial_data_size / 2) {
-      *data = trealloc(*data, data_size, data_size * growth_factor);
+      *data = trealloc(*data, data_size, data_size * data_growth_factor);
       if (tmalloc_is_failure(*data)) errno_error;
-      data_size *= growth_factor;
+      data_size *= data_growth_factor;
     }
     for (uint32_t i = 0; i < read_size; i += 1) {
       if (delimiter == (*data)[data_used + i]) {
         if (indexes_size < *indexes_used) {
-          *indexes = trealloc(*indexes, indexes_size * sizeof(uint32_t), indexes_size * growth_factor * sizeof(uint32_t));
+          *indexes = trealloc(*indexes, indexes_size * sizeof(uint32_t), indexes_size * data_growth_factor * sizeof(uint32_t));
           if (tmalloc_is_failure(*indexes)) errno_error;
-          indexes_size *= growth_factor;
+          indexes_size *= data_growth_factor;
         }
         (*data)[data_used + i] = 0;
         (*indexes)[*indexes_used] = data_used + i;
@@ -126,7 +137,7 @@ void read_files(uint8_t* paths_data, uint32_t* paths_indexes, uint32_t paths_ind
 */
 
 int main(int argc, char** argv) {
-  uint16_t patterns_count;
+  uint8_t patterns_count;
   uint8_t** patterns;
   uint8_t options = cli(argc, argv, &patterns_count, &patterns);
   if (options & options_flag_files) {
@@ -142,6 +153,9 @@ int main(int argc, char** argv) {
 
       write(1, paths_data + paths_index, paths_indexes[i] - paths_index);
     }
+  }
+  else {
+
   }
   return 0;
 }

@@ -1,6 +1,8 @@
 #include <unistd.h>  // write()
 #define maxlen (unsigned short int)-1
 
+unsigned char help_text[] = "arguments: filename\n";
+
 int main(int argc, char** argv) {
   // handles:
   // * null strings
@@ -23,8 +25,7 @@ int main(int argc, char** argv) {
     write(1, argv[1], len + 1);
   }
   else {
-    unsigned char* help_text = "arguments: filename\n";
-    write(1, help_text, 20);
+    write(1, help_text, sizeof(help_text));
     return 2;
   }
 }

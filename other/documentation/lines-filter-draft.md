@@ -3,6 +3,7 @@
 * reads text or file paths from standard input
 * matching is case-insensitive for ascii-only character search strings unless any search string contains an uppercase character (smart case).
 * matches may be displayed in any order because of parallelization
+* intended for a total keyword length of under 1000 characters
 * uses the aho-corasick substring search algorithm
 * implementation of a fast and parallelized file processing algorithm
 

@@ -1,10 +1,10 @@
 # sph-utils
 
 basic file, shell and text manipulation utilities.
-compared to the [sph-script](https://github.com/sph-mn/sph-script) collection of scripts, the programs here run more efficiently and are written in c.
+compared to the [sph-script](https://github.com/sph-mn/sph-script) collection of scripts, the programs here run more efficiently and are written in c. especially when the commands are needed frequently or for many files, these utilities are much faster compared to shell scripts.
 
 # dependencies
-* c 2011 standard library (for example musl-libc or glibc)
+* c 2011 standard library (for example [musl-libc](https://musl.libc.org/) or [glibc](https://www.gnu.org/software/libc/))
 * posix 2008 features (for example linux or freebsd)
 * for the provided compile script: shell, gcc
 
@@ -47,7 +47,7 @@ displays the given path if it does not exist. otherwise, increments a counter su
 one use case is to rename or move files without overwriting files that have the same name.
 
 # stemname
-removes the last dot-separated filename extension from the filename string.
+removes the last dot-separated filename extension from the string.
 
 ~~~
 arguments: filename
@@ -75,6 +75,9 @@ reads from standard input and writes the byte character count of each line to st
 this is a performance optimized version. example run time: 5335407 lines, 0m6.532s.
 
 for comparison, the "wc" utility needs to be called per line, which is much slower.
+
+# rename-lowercase
+# file-size-sum
 
 # see also
 * [sph-script](https://github.com/sph-mn/sph-script)

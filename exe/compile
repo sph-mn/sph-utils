@@ -8,7 +8,8 @@ prefix=exe/compiled
 mkdir -p $prefix
 
 #for name in lines-filter
-for name in splice is-empty-directory unique-name line-length stemname
+#for name in splice is-empty-directory unique-name line-length stemname
+for name in rename-lowercase
 do
   $compiler $compiler_options src/$name.c -o $prefix/$name
   chmod +x $prefix/$name

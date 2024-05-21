@@ -42,12 +42,10 @@
 * process buffer for matches
 
 ## matching
-* create trie
-* interleaved matrix
-* go through the buffer character by character
-* on newline, reset state, memoize line start
-* if match, print store in matches (line-start line-end)
-* logical-and matching using a bitmap set to check that all keywords have been matched
+* find next line-end
+* if line too short for longest and-keyword or shortest or-keyword, skip
+* memmem for first keyword on line
+* if match found, repeat for remaining patterns
 
 ## printing
 * print in single thread. could be designated thread
@@ -113,26 +111,69 @@ i have been using three custom command-line tools intensively:
 i use the above commands for finding code references and discovering files on the command-line.
 because i use it so frequently, i want the results from these commands as fast as possible.
 
-even though tools like ripgrep are already fast, lines-filter might be able to be slightly faster through specialization:
+even though tools like ripgrep are fast, lines-filter might be able to be slightly faster through specialization.
 
-## performance
-* to allocate heap memory, instead of malloc using the lower level mmap (not for file-mapping) directly, which malloc uses
-* lseek instead of stat to get file size
-* compile-time configured options like thread-count
-* no preprocessing of the search pattern arguments to pass to the command
-* no subprocesses and pipe chain necessary
-* much fewer options supported
-* much fewer customization options to parse
-* far lower code size and complexity (one 500L c file, vs 50000L in 211 files for rg)
+## performance-relevant choices
 * far reduced feature set (no utf-16, no reporting contextual lines, no line numbers, et cetera)
-* interleaved state transition matrix
-* evaluate memchr
-* use simple thread pool with wait and notify
+* read files with large buffers. do not use mmap to map files because it reads in pages and has overhead requesting new pages, and so on
+* use mmap memory allocation directly instead of calling malloc (which uses mmap) to allocate memory. the generalizations done by malloc are not needed (optimizations for a large range of variable size allocations, frequent de- and reallocations, etc)
+* lseek instead of stat to get file sizes
+* compile-time configured options like thread-count
+* no preprocessing of the search pattern arguments needed before calling the command
+* no pipe chain and subprocesses necessary
+* much fewer features
+* much fewer customization options to parse
+* far lower code size and complexity (one 500L c file versus 50000L in 211 files for other tools)
+* use a simple thread pool with wait and notify that grows only on demand to avoid startup costs
+* memmem inspired searcher searching short patterns as integers
 
 ## reading
 * [the design of ripgrep](https://blog.burntsushi.net/ripgrep/), [code and search algorithms of ripgrep](https://github.com/BurntSushi/aho-corasick/tree/master)
 * [aho-corasick algorithm](https://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_algorithm)
 * [aho-corasick implementation](https://github.com/mischasan/aho-corasick)
+
+## how to align read buffers to newlines
+* option
+  * single-threaded read
+  * copy overlap to next buffer
+  * can not be done from multiple threads
+
+## should stdin processing always be single-threaded
+* reading from stdin must be single threaded
+* threads would be waiting for input
+* needs to be tested
+* file-read knows file size earlier
+
+## substring search algorithm
+* memmem - compares in word-size and seems easily optimized. for and-matching, we re-search portions with the remaining patterns after the first match has been found. for or-matching, one match is enough. the user may provide the likely most unique keywords first
+  * memmem can be implemented with horspool or similar algorithms
+* boyer-moore-horspool-galil - easy to implement but still character by character. in the case of lines-filter, the texts to be searched are highly non-random. it is unclear if the skipping it does is then actually superior to full word-wise comparisons
+* aho-corasick with an interleaved state transition matrix is interesting because it matches multiple patterns at once and the needed memory can be stack allocated
+  * not ignored should be the preparation costs, considering that lines-filter should have extremely low startup times
+  * for each character we still go through considerable processing to make the trie accesses and comparisons. might be a modulo, if-branches, things like this per character
+* [string-searching algorithm](https://en.wikipedia.org/wiki/String-searching_algorithm)
+
+## matching
+* use optimized integer value comparing memmem versions for patterns up to 8 characters length
+* use memmem two-way search for patterns longer than 8 characters
+* besides the call-overhead memmem two-way search has significant initialization overhead
+* match result buffer: (line-start line-end) ...
+* tasks: find first matches, find other matches, find line boundaries
+* option
+  * find and record all first matches in buffer
+  * record the matches in the line-start fields of the match buffer
+* option
+  * search in buffer
+  * on match, find line boundaries
+  * find remaining matches in line
+  * continue from line-end
+* option
+  * find next line-end
+  * if line too short for longest and-keyword or shortest or-keyword, skip
+  * memmem for first keyword on line
+  * if match found, repeat for remaining patterns
+  * con
+    * many calls to memmem
 
 ## alternatives
 * ripgrep is perhaps the fastest and is also fast used with pipes. this is currently used in [sph-script](https://github.com/sph-mn/sph-script)
@@ -152,7 +193,6 @@ even though tools like ripgrep are already fast, lines-filter might be able to b
 * find | xargs cat | lines-filter. surprisingly slow
 time find . -type d \( -name node_modules -o -name .git -o -name cache -o -name vendor \) -prune -o -type f -print | g -F .php | xargs cat
 
-
 ## stopping after the first match
 * if a file is read by multiple threads, not all threads can be immediately stopped. however, a thread encountering a match can stop its processing
 
@@ -162,6 +202,7 @@ time find . -type d \( -name node_modules -o -name .git -o -name cache -o -name 
 * if regular expressions are needed, the logical conditions are probably not needed or not as important
 
 ## things lines-filter does not do
+* tracking where exactly in a line text matched
 * file path filtering
 * regular expressions
 * output colorization
