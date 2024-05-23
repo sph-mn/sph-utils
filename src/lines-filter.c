@@ -1,11 +1,15 @@
 #ifndef lines_filter_config
 #define page_size 4096
+#define max_thread_count 16
+#define lines_filter_config
+#endif
+
+#ifndef read_all_paths_config
 #define path_initial_length 400
 #define paths_initial_count 10000
 #define paths_initial_data_size paths_initial_count * path_initial_length
 #define data_growth_factor 3
-#define max_thread_count 16
-#define lines_filter_config
+#define read_all_paths_config
 #endif
 
 #include <stdio.h>
@@ -18,11 +22,9 @@
 #include <unistd.h>
 #define _GNU_SOURCE
 #include <sys/mman.h>
+#include "lib/case_table.c"
+#include "lib/read_all_paths.c"
 
-#define print(fd, stack_string_variable) write(fd, stack_string_variable, sizeof(stack_string_variable) - 1)
-#define tmalloc(size) mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)
-#define trealloc(pointer, old_size, new_size) mremap(pointer, old_size, new_size, MREMAP_MAYMOVE)
-#define tmalloc_is_failure(pointer) MAP_FAILED == pointer
 #define display_error(format, ...) fprintf(stderr, "error: %s:%d " format "\n", __func__, __LINE__, __VA_ARGS__)
 #define errno_error do{display_error("%s", strerror(errno));exit(1);}while(0)
 
@@ -30,14 +32,6 @@
 #define options_flag_or 2
 #define options_flag_files 4
 #define options_flag_null_delimiter 8
-
-const uint8_t case_table[] = {
-  ['A'] = 'a', ['B'] = 'b', ['C'] = 'c', ['D'] = 'd', ['E'] = 'e', ['F'] = 'f',
-  ['G'] = 'g', ['H'] = 'h', ['I'] = 'i', ['J'] = 'j', ['K'] = 'k', ['L'] = 'l',
-  ['M'] = 'm', ['N'] = 'n', ['O'] = 'o', ['P'] = 'p', ['Q'] = 'q', ['R'] = 'r',
-  ['S'] = 's', ['T'] = 't', ['U'] = 'u', ['V'] = 'v', ['W'] = 'w', ['X'] = 'x',
-  ['Y'] = 'y', ['Z'] = 'z'
-};
 
 const uint8_t cli_help_text[] = "arguments: [options] pattern ...\n"
   "description\n"
@@ -88,47 +82,6 @@ static uint8_t* memmem64(const uint8_t* data, size_t size, const uint8_t* patter
   return b == a ? (uint8_t*)data - 8 : 0;
 }
 
-void read_paths(char delimiter, uint8_t** data, uint32_t** indexes, uint32_t* indexes_used) {
-  // read delimiter-terminated paths from standard input.
-  // all paths must end with the delimiter.
-  // data will contain the full string read from standard input,
-  // while paths contains indexes to the start of each path in data.
-  // the delimiter will be replaced with 0 to make paths null-separated strings (needed for libc system calls).
-  uint32_t data_used = 0;
-  uint32_t data_size = paths_initial_data_size;
-  uint32_t indexes_size = paths_initial_count;
-  ssize_t read_size;
-  *data = tmalloc(data_size);
-  if (tmalloc_is_failure(*data)) errno_error;
-  *indexes = tmalloc(indexes_size * sizeof(uint32_t));
-  if (tmalloc_is_failure(*indexes)) errno_error;
-  **indexes = 0;
-  *indexes_used = 1;
-  while (0 < read(0, *data + data_used, paths_initial_data_size / 2)) {
-    if (data_size < data_used + read_size + paths_initial_data_size / 2) {
-      *data = trealloc(*data, data_size, data_size * data_growth_factor);
-      if (tmalloc_is_failure(*data)) errno_error;
-      data_size *= data_growth_factor;
-    }
-    for (uint32_t i = 0; i < read_size; i += 1) {
-      if (delimiter == (*data)[data_used + i]) {
-        if (indexes_size < *indexes_used) {
-          *indexes = trealloc(*indexes, indexes_size * sizeof(uint32_t), indexes_size * data_growth_factor * sizeof(uint32_t));
-          if (tmalloc_is_failure(*indexes)) errno_error;
-          indexes_size *= data_growth_factor;
-        }
-        (*data)[data_used + i] = 0;
-        (*indexes)[*indexes_used] = data_used + i;
-        *indexes_used += 1;
-      }
-    }
-    data_used += read_size;
-  }
-  if (0 > read_size) errno_error;
-  // correct for a trailing newline
-  if (delimiter == (*data)[data_used]) *indexes_used -= 1;
-}
-
 /*
 void read_files(uint8_t* paths_data, uint32_t* paths_indexes, uint32_t paths_indexes_used) {
   for (uint32_t i = 0; i < paths_indexes_used; i += 1) {
@@ -145,7 +98,7 @@ int main(int argc, char** argv) {
     uint32_t* paths_indexes;
     uint32_t paths_indexes_used;
     ssize_t read_size;
-    read_paths(options & options_flag_null_delimiter ? 0 : '\n', &paths_data, &paths_indexes, &paths_indexes_used);
+    read_all_paths(options & options_flag_null_delimiter ? 0 : '\n', &paths_data, &paths_indexes, &paths_indexes_used);
     for (uint32_t i = 0; i < paths_indexes_used; i += 1) {
       int file = open(paths_data + paths_indexes[i]);
       read_size = read(0, 8 * page_size);

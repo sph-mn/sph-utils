@@ -2,8 +2,16 @@
 #include <inttypes.h>
 #include <string.h>  // strlen, strerror
 #include <errno.h>
+#include "lib/tmalloc.c"
+#include "lib/read_paths.c"
 
 #define buffer_size 8192
+
+    uint8_t* paths_data;
+    uint32_t* paths_indexes;
+    uint32_t paths_indexes_used;
+    ssize_t read_size;
+    read_paths(options & options_flag_null_delimiter ? 0 : '\n', &paths_data, &paths_indexes, &paths_indexes_used);
 
 // overlap line buffer
 

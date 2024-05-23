@@ -132,17 +132,23 @@ even though tools like ripgrep are fast, lines-filter might be able to be slight
 * [aho-corasick algorithm](https://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_algorithm)
 * [aho-corasick implementation](https://github.com/mischasan/aho-corasick)
 
-## how to align read buffers to newlines
+## line-reading
+* large files
+  * very large files not supported, as the program is intended for used editable text
+* long lines
+  * limit the line length
+* line access
+* should stdin processing always be single-threaded
+  * reading from stdin must be single threaded because it is usually non-seekable
+  * threads would be waiting for input
+  * needs to be tested
+  * file-read knows file size earlier
+
+### how to align read buffers to newlines
 * option
   * single-threaded read
   * copy overlap to next buffer
   * can not be done from multiple threads
-
-## should stdin processing always be single-threaded
-* reading from stdin must be single threaded
-* threads would be waiting for input
-* needs to be tested
-* file-read knows file size earlier
 
 ## substring search algorithm
 * memmem - compares in word-size and seems easily optimized. for and-matching, we re-search portions with the remaining patterns after the first match has been found. for or-matching, one match is enough. the user may provide the likely most unique keywords first
@@ -174,6 +180,10 @@ even though tools like ripgrep are fast, lines-filter might be able to be slight
   * if match found, repeat for remaining patterns
   * con
     * many calls to memmem
+
+## use cases
+* filtering file paths or searching for source code files or displaying source code lines
+* removing lines that do not match a rule. users must check for error case when long lines are skipped
 
 ## alternatives
 * ripgrep is perhaps the fastest and is also fast used with pipes. this is currently used in [sph-script](https://github.com/sph-mn/sph-script)
