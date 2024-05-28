@@ -76,8 +76,25 @@ this is a performance optimized version. example run time: 5335407 lines, 0m6.53
 
 for comparison, the "wc" utility needs to be called per line, which is much slower.
 
-# rename-lowercase
-# file-size-sum
+# dcat
+depends on linux and a filesystem with d_type support (for example ext4/3/2).
+
+list directory entries and subdirectory entries recursively fast.
+
+~~~
+arguments: directory ...
+~~~
+
+* lists full paths
+* accepts multiple directories as arguments
+* lists directories and sub-directories
+
+## performance
+20402 files under /usr after multiple runs:
+* dcat: 0m0.055s
+* gnu find: 0m1.940s
+* fd: 0m2.348s
+* eza (exa): 0m4.177s
 
 # see also
 * [sph-script](https://github.com/sph-mn/sph-script)

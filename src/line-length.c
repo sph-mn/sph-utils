@@ -2,7 +2,7 @@
 #include <inttypes.h>
 #include <string.h>  // strlen, strerror
 #include <errno.h>
-#include "lib.c"
+#include "lib/u32_string.c"
 
 #define buffer_size 16384
 
