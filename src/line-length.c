@@ -2,7 +2,7 @@
 #include <inttypes.h>
 #include <string.h>  // strlen, strerror
 #include <errno.h>
-#include "lib.c"
+#include "lib/u32_string.c"
 
 #define buffer_size 16384
 
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   }
   if (errno) {
     const uint8_t* message = strerror(errno);
-    write(1, message, strlen(message));
+    write(2, message, strlen(message));
     return 1;
   }
   return 0;

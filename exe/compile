@@ -1,15 +1,13 @@
 #!/bin/sh
 
 if command -v musl-gcc > /dev/null; then compiler=musl-gcc; else compiler=gcc; fi
-compiler_options="-Wunused-label -Wunused-value -Wfatal-errors -std=c11 -O0 -static"
-#compiler_options="-Wunused-label -Wunused-value -Wunused-variable -Wfatal-errors -std=c11 -O3 -static -march=native -mtune=native"
+#compiler_options="-Wunused-label -Wunused-value -Wfatal-errors -std=c11 -O0 -static"
+compiler_options="-Wunused-label -Wunused-value -Wunused-variable -Wfatal-errors -std=c11 -O3 -static -march=native -mtune=native"
 
 prefix=exe/compiled
 mkdir -p $prefix
 
-#for name in lines-filter
-#for name in splice is-empty-directory unique-name line-length stemname
-for name in rename-lowercase
+for name in splice is-empty-directory unique-name line-length stemname dcat rename-lowercase
 do
   $compiler $compiler_options src/$name.c -o $prefix/$name
   chmod +x $prefix/$name

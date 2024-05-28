@@ -3,6 +3,7 @@
 #include <unistd.h>  // write
 #include <inttypes.h>
 #include <errno.h>
+#include "lib/print_errno.c"
 
 #define max_path_len 4096
 
@@ -23,7 +24,6 @@ int main(int argc, char** argv) {
     write(1, help_text, sizeof(help_text));
     return 0;
   }
-  uint16_t basename_index;
   size_t len;
   size_t j;
   uint8_t new[max_path_len + 1];
@@ -66,9 +66,7 @@ int main(int argc, char** argv) {
     write(1, new, len);
     write(1, "\n", 1);
     if (rename(old, new)) {
-      const uint8_t* message = strerror(errno);
-      write(2, message, strlen(message));
-      write(2, "\n", 1);
+      print_errno();
       return 1;
     }
   }
