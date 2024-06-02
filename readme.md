@@ -77,22 +77,22 @@ this is a performance optimized version. example run time: 5335407 lines, 0m6.53
 for comparison, the "wc" utility needs to be called per line, which is much slower.
 
 # dcat
-depends on linux and a filesystem with d_type support (for example ext4/3/2).
+depends on linux (SYS_getdents64) and, for recursive listing, a filesystem with d_type support (for example ext4/3/2).
 
-list directory entries and subdirectory entries recursively fast.
+list directory entries, and optionally all sub-directory entries, fast.
 
 ~~~
-arguments: directory ...
+arguments: [-r] directory ...
 ~~~
 
-* lists full paths
 * accepts multiple directories as arguments
-* lists directories and sub-directories
+* with the option "-r" directories and sub-directories are listed recursively. the option must be the first argument if provided
 
 ## performance
-20402 files under /usr after multiple runs:
-* dcat: 0m0.055s
-* gnu find: 0m1.940s
+20402 files under /usr after multiple runs of each program like "time find /usr":
+* dcat: 0m1.657s
+* gnu find: 0m1.727s
+* sbase find: 0m1.851s
 * fd: 0m2.348s
 * eza (exa): 0m4.177s
 

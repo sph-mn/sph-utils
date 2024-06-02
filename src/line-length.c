@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   }
   if (errno) {
     const uint8_t* message = strerror(errno);
-    write(1, message, strlen(message));
+    write(2, message, strlen(message));
     return 1;
   }
   return 0;
