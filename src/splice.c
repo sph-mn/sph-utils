@@ -6,6 +6,8 @@
 #include <dirent.h>
 #include <libgen.h>
 #include <inttypes.h>
+#include <lib/resolve_duplicate_filename.c>
+
 #define print(fd, var_name, string_literal)      \
   uint8_t var_name[] = string_literal; \
   write(fd, var_name, sizeof(var_name) - 1);
@@ -41,19 +43,6 @@ void cli(int argc, char** argv, size_t* directories_count, uint8_t*** directorie
   }
   *directories_count = argc - optind;
   *directories = (uint8_t**)argv + optind;
-}
-
-int resolve_duplicate(char* path, size_t path_length) {
-  size_t counter = 1;
-  uint8_t suffix_length = 0;
-  do {
-    suffix_length = snprintf(path + path_length, path_len_max - path_length, ".%ju", counter);
-    if (-1 == suffix_length) {
-      return 1;
-    }
-    counter += 1;
-  } while (!access(path, F_OK));
-  return 0;
 }
 
 int main(int argc, char** argv) {
@@ -116,13 +105,15 @@ int main(int argc, char** argv) {
       *path = 0;
       // resolve duplicates
       if (!access(path2, F_OK)) {
-        if (resolve_duplicate(path2, directory_strlen + 3 + entry_strlen + 1)) {
+        if (resolve_duplicate_filename(path2, directory_strlen + 3 + entry_strlen + 1)) {
           fprintf(stderr, "target already exists and renaming source failed. %s\n", path2);
           continue;
         }
       }
       // move
-      rename(path1, path2);
+      if (rename(path1, path2)) {
+        print_errno();
+      }
     }
     closedir(dir);
     rmdir(directories[i]);

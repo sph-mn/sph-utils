@@ -96,6 +96,27 @@ arguments: directory ...
 * fd: 0m2.348s
 * eza (exa): 0m4.177s
 
+# rename-lowercase
+~~~
+arguments: path ...
+~~~
+
+replaces ascii uppercase characters in the file basename and renames the file if replacements occurred.
+the full old and new path are written to standard output.
+
+# rate
+  "this program sorts files by moving them into and between numerically named directories.
+   first it searches upwards to see if a numeric directory name exists in path,
+   if yes, then only the file hierarchy under that number is moved into a directory with the given number.
+   if no numeric directory exists in path, a numeric directory is created in the current working directory and given paths are moved under there.
+   examples:
+   cwd: /
+   rate 2 /a/0/b/c -> /a/2/b/c
+   cwd: /
+   rate 2 /a/b/c -> /2/a/b/c
+   cwd: /a/b
+   rate 2 /a/b/c -> /a/b/2/c"
+
 # see also
 * [sph-script](https://github.com/sph-mn/sph-script)
 * [sbase](https://git.suckless.org/sbase/file/README.html)
