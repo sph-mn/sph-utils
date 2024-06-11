@@ -1,0 +1,10 @@
+#!/bin/sh -e
+
+group="$PWD/exe/compiled/group"
+root=temp/test-group
+mkdir -p "$root"
+cd "$root"
+mkdir -p aa/bb aa/ff
+touch aa/fcc aa/bb/fdd
+
+"$group" ee aa/fcc $PWD/aa/bb/fdd aa/ff//

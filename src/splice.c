@@ -6,7 +6,9 @@
 #include <dirent.h>
 #include <libgen.h>
 #include <inttypes.h>
-#include <lib/resolve_duplicate_filename.c>
+#include <errno.h>
+#include "lib/resolve_duplicate_filename.c"
+#include "lib/print_errno.c"
 
 #define print(fd, var_name, string_literal)      \
   uint8_t var_name[] = string_literal; \
