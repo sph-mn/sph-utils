@@ -26,6 +26,13 @@ options
   -v  display the current version number
 ~~~
 
+# group
+~~~
+arguments: target file ...
+~~~
+
+move files into target directory. the directory is created if it does not exist. duplicate file names are not moved.
+
 # is-empty-directory
 ~~~
 arguments: directory ...
@@ -48,6 +55,7 @@ one use case is to rename or move files without overwriting files that have the 
 
 # stemname
 removes the last dot-separated filename extension from the string.
+maximum string length is 65535 characters.
 
 ~~~
 arguments: filename
@@ -55,28 +63,35 @@ arguments: filename
 
 examples:
 ~~~
-$ remove-extension test.tar.gz
+$ stemname test.tar.gz
 test.tar
 
-$ remove-extension test.tar
+$ stemname test.tar
 test
 
-$ remove-extension test
+$ stemname test
 test
 
-$ remove-extension .hidden
+$ stemname .hidden
 .hidden
 ~~~
 
-maximum string length is 65535 characters.
-
 # line-length
 reads from standard input and writes the byte character count of each line to standard output. unicode multibyte characters are counted as multiple characters.
-this is a performance optimized version. example run time: 5335407 lines, 0m6.532s.
+example run time: 5335407 lines, 0m6.532s.
 
 for comparison, the "wc" utility needs to be called per line, which is much slower.
 
-# dcat
+# rename-lowercase
+~~~
+arguments: path ...
+~~~
+
+replaces ascii uppercase characters in the file basename and renames the file if replacements occurred.
+the full old and new path are written to standard output.
+
+# 2
+## dcat
 depends on linux (SYS_getdents64) and, for recursive listing, a filesystem with d_type support (for example ext4/3/2).
 
 list directory entries, and optionally all sub-directory entries, fast.
@@ -96,26 +111,36 @@ arguments: [-r] directory ...
 * fd: 0m2.348s
 * eza (exa): 0m4.177s
 
-# rename-lowercase
+## rate
+*in development*
+
+this program sorts files by moving them into and between numerically named directories.
+
+first it searches upwards to see if a numeric directory name exists in path,
+* if yes, then only the file hierarchy under that number is moved into a directory with the given number.
+* if no numeric directory exists in path, a numeric directory is created in the current working directory and given paths are moved under there.
+
+behavior:
 ~~~
-arguments: path ...
+cwd: /
+rate 2 /a/0/b/c
+->
+/a/2/b/c
 ~~~
 
-replaces ascii uppercase characters in the file basename and renames the file if replacements occurred.
-the full old and new path are written to standard output.
+~~~
+cwd: /
+rate 2 /a/b/c
+->
+/2/a/b/c
+~~~
 
-# rate
-  "this program sorts files by moving them into and between numerically named directories.
-   first it searches upwards to see if a numeric directory name exists in path,
-   if yes, then only the file hierarchy under that number is moved into a directory with the given number.
-   if no numeric directory exists in path, a numeric directory is created in the current working directory and given paths are moved under there.
-   examples:
-   cwd: /
-   rate 2 /a/0/b/c -> /a/2/b/c
-   cwd: /
-   rate 2 /a/b/c -> /2/a/b/c
-   cwd: /a/b
-   rate 2 /a/b/c -> /a/b/2/c"
+~~~
+cwd: /a/b
+rate 2 /a/b/c
+->
+/a/b/2/c
+~~~
 
 # see also
 * [sph-script](https://github.com/sph-mn/sph-script)
