@@ -1,156 +1,172 @@
 #define _GNU_SOURCE
-#include <errno.h>
-#include <inttypes.h>
-#include <libgen.h>  // dirname
-#include <stdlib.h>  // realpath
-#include <string.h>
-#include <sys/stat.h>  // mkdir
-#include <unistd.h>  // write, access
-
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-
-#include "lib/print_errno.c"
-#include "lib/ensure_directory_structure.c"
-#include "lib/resolve_duplicate_filename.c"
-
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <unistd.h>
+#include <limits.h>
+#include <errno.h>
+#include <ctype.h>
+#include <sys/stat.h>
 
-#define string_chars_equal2(a, c1, c2) (a[0] == c1 && (!a[1] || (a[1] == c2 && !a[2])))
-#define option_add 1
-#define option_subtract 2
+#define path_max 4096
 
-uint16_t u16_from_string(uint8_t* a, uint8_t len) {
-  // len must be >= 1
-  uint16_t b;
-  uint16_t factor = 10;
-  len -= 1;
-  b = a[len] - 48;
-  if (len) {
-    while (len--) {
-      b += (a[len] - 48) * factor;
-      factor *= 10;
-    }
-  }
-  return b;
+// function to print errors
+void print_errno() {
+    perror("");
 }
 
-int cli(int argc, char** argv, uint16_t* new_rating, uint8_t* options) {
-  uint8_t help_text[] = "arguments: [-m] rating path ...\n";
-  uint16_t len;
-  if (3 > argc) {
-    write(2, help_text, strlen(help_text));
-    exit(1);
-  }
-  int i = 1;
-  // integer overflows for invalid rating values
-  if (string_chars_equal2(argv[i], '-', 'm')) {
-    i += 1;
-    len = strlen(argv[i]);
-    if ('-' == argv[i][0]) {
-      *options = option_subtract;
-      *new_rating = u16_from_string(argv[i] + 1, len - 1);
+// function to ensure directory structure exists
+void ensure_directory_structure(const char* path) {
+    char tmp[path_max];
+    snprintf(tmp, sizeof(tmp), "%s", path);
+    size_t len = strlen(tmp);
+    if (tmp[len - 1] == '/') {
+        tmp[len - 1] = '\0';
     }
-    else {
-      *options = option_add;
-      *new_rating = u16_from_string(argv[i], len);
+    for (char* p = tmp + 1; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            mkdir(tmp, S_IRWXU);
+            *p = '/';
+        }
     }
-  }
-  else {
+    mkdir(tmp, S_IRWXU);
+}
+
+// function to find a numeric directory in the path
+int find_numeric_directory_in_path(char* path, int* dir_start, int* dir_len) {
+    int len = strlen(path);
+    int i = len - 1;
+    int num_start = -1, num_end = -1;
+    while (i >= 0) {
+        if (path[i] == '/') {
+            if (num_end != -1) {
+                // found a numeric directory
+                num_start = i + 1;
+                *dir_start = num_start;
+                *dir_len = num_end - num_start + 1;
+                return 1;
+            }
+        } else if (isdigit(path[i])) {
+            if (num_end == -1) {
+                num_end = i;
+            }
+        } else {
+            num_end = -1;
+        }
+        i--;
+    }
+    // no numeric directory found
+    return 0;
+}
+
+// function to parse command-line arguments
+int cli(int argc, char** argv, int16_t* new_rating, uint8_t* options) {
+    char help_text[] = "arguments: [-m] [+-]rating path ...\n";
+    if (argc < 3) {
+        write(2, help_text, strlen(help_text));
+        exit(1);
+    }
+    int i = 1;
     *options = 0;
-    *new_rating = u16_from_string(argv[i], len);
-  }
-  return i + 1;
-}
-
-void get_modified_path() {
-  uint16_t rating_string_len = 0;
-  uint16_t rating_string_start = 0;
-  uint16_t len = strlen(old_path);
-  while (len--) {
-    if (rating_string_start && 48 <= old_path[len] && 57 >= old_path[len]) continue;
-    else if ('/' == old_path[len]) {
-      if (rating_string_start) {
-        rating_string_len = rating_string_start - len - 1;
-        memcpy(rating_string, old_path + len + 1, rating_string_len);
-        break;
-      }
-      else rating_string_start = len;
+    if (strcmp(argv[i], "-m") == 0) {
+        *options = 1; // modify existing rating
+        i += 1;
+        if (i >= argc) {
+            write(2, help_text, strlen(help_text));
+            exit(1);
+        }
     }
-    else rating_string_start = 0;
-  }
-  // todo: old_rating_position
-  if (rating_string_len) {
-    old_rating = u16_from_string(rating_string, rating_string_len);
-    // todo: use string representation right here and save conversion
-    if (option_add == options) {
-      new_rating += old_rating;
-    }
-    else if (option_subtract == options) {
-      new_rating = old_rating - new_rating;
-    }
-  }
-  else {
-    if (options) new_rating = 0;
-  }
-  rating_string[rating_string_len] = 0;
-  printf("path %s\n", rating_string);
+    char* rating_str = argv[i];
+    int rating = atoi(rating_str);
+    *new_rating = rating;
+    i += 1;
+    return i;
 }
 
 int main(int argc, char** argv) {
-  uint8_t old_path[path_max];
-  uint8_t new_path[path_max];
-  uint8_t rating_string[4];
-  uint64_t rating_string_start;
-  uint8_t rating_string_len;
-  uint16_t old_rating;
-  uint16_t new_rating;
-  uint16_t len;
-  uint8_t options;
-  uint8_t* a;
-  for (int i = cli(argc, argv, &new_rating, &options); i < argc; i += 1) {
-    // resolve symlinks and directory references
-    if (!realpath(argv[i], old_path)) {
-      print_errno();
-      continue;
-    }
-    uint16_t rating_string_len = 0;
-    uint16_t rating_string_start = 0;
-    uint16_t len = strlen(old_path);
-    while (len--) {
-      if (rating_string_start && 48 <= old_path[len] && 57 >= old_path[len]) continue;
-      else if ('/' == old_path[len]) {
-        if (rating_string_start) {
-          rating_string_len = rating_string_start - len - 1;
-          memcpy(rating_string, old_path + len + 1, rating_string_len);
-          break;
+    int16_t new_rating;
+    uint8_t options;
+    char old_path[path_max];
+    char new_path[path_max];
+
+    int i = cli(argc, argv, &new_rating, &options);
+    for (; i < argc; i++) {
+        if (!realpath(argv[i], old_path)) {
+            perror("realpath");
+            continue;
         }
-        else rating_string_start = len;
-      }
-      else rating_string_start = 0;
-    }
+        int dir_start, dir_len;
+        int found = find_numeric_directory_in_path(old_path, &dir_start, &dir_len);
+        if (found) {
+            // numeric directory found in the path
+            char numeric_dir[dir_len + 1];
+            memcpy(numeric_dir, old_path + dir_start, dir_len);
+            numeric_dir[dir_len] = '\0';
+            int old_rating = atoi(numeric_dir);
+            int modified_rating;
+            if (options == 1) {
+                // modify existing rating
+                modified_rating = old_rating + new_rating;
+            } else {
+                // replace with new rating
+                modified_rating = new_rating;
+            }
+            // build the new path
+            // copy up to dir_start
+            memcpy(new_path, old_path, dir_start);
+            new_path[dir_start] = '\0';
+            // append modified rating
+            char modified_dir[16];
+            sprintf(modified_dir, "%d", modified_rating);
+            strcat(new_path, modified_dir);
+            // append rest of the path
+            strcat(new_path, old_path + dir_start + dir_len);
+        } else {
+            // no numeric directory found
+            // create numeric directory in current working directory
+            char cwd[path_max];
+            if (!getcwd(cwd, sizeof(cwd))) {
+                perror("getcwd");
+                continue;
+            }
+            size_t cwd_len = strlen(cwd);
+            char* relative_path;
+            if (strcmp(cwd, "/") == 0) {
+                relative_path = old_path;
+            } else if (strncmp(old_path, cwd, cwd_len) == 0 && old_path[cwd_len] == '/') {
+                // old_path is under cwd
+                relative_path = old_path + cwd_len;
+            } else {
+                // old_path is not under cwd
+                relative_path = old_path;
+            }
+            snprintf(new_path, sizeof(new_path), "%s/%d%s", cwd, new_rating, relative_path);
+        }
 
+        // ensure the destination directory exists
+        char* dir_end = strrchr(new_path, '/');
+        if (dir_end) {
+            *dir_end = '\0';
+            ensure_directory_structure(new_path);
+            *dir_end = '/';
+        }
 
-    get_new_rating(old_path);
-    continue;
-    // todo: copy prefix
-    memcpy(new_path, old_path, len);
-    // todo: append new rating
-    // todo: copy suffix
-    memcpy(new_path, old_path, len);
-    if (file_exists(new_path)) {
-      if (resolve_duplicate_filename(path2, directory_strlen + 3 + entry_strlen + 1)) {
-        fprintf(stderr, "target already exists and renaming source failed. %s\n", path2);
-        continue;
-      }
+        // check if the target file exists
+        struct stat st;
+        if (stat(new_path, &st) == 0) {
+            fprintf(stderr, "target file %s already exists\n", new_path);
+            continue;
+        }
+
+        // move the file
+        if (rename(old_path, new_path) != 0) {
+            perror("rename");
+            continue;
+        } else {
+            printf("moved %s to %s\n", old_path, new_path);
+        }
     }
-    else {
-      // todo: find dirname and create it
-      ensure_directory_structure(new_path);
-    }
-    if (rename(old_path, new_path)) {
-      print_errno();
-    }
-  }
+    return 0;
 }

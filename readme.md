@@ -1,7 +1,7 @@
 # sph-utils
 
 basic file, shell and text manipulation utilities.
-compared to the [sph-script](https://github.com/sph-mn/sph-script) collection of scripts, the programs here run more efficiently and are written in c. especially when the commands are needed frequently or for many files, these utilities are much faster compared to shell scripts.
+compared to the [sph-script](https://github.com/sph-mn/sph-script) collection of scripts, the programs here run more efficiently and are written in c. especially when the commands are used frequently, these utilities are much faster compared to shell scripts.
 
 # dependencies
 * c 2011 standard library (for example [musl-libc](https://musl.libc.org/) or [glibc](https://www.gnu.org/software/libc/))
@@ -12,7 +12,7 @@ compared to the [sph-script](https://github.com/sph-mn/sph-script) collection of
 ~~~
 sh ./exe/compile
 ~~~
-this should create executables under `exe/compiled/`. these executables can copied anywhere as is because they do not depend on shared libraries. for example, the programs can be copied or symlinked into `/usr/bin` (as root) after which they should be available as commands on the command-line.
+this should create executables under `exe/compiled/`. these executables can copied anywhere as is because they do not depend on shared libraries. for example, the programs can be copied or symlinked into `/usr/bin` (as root) after which they should be available as commands on the command-line as long as the executable bit is set.
 
 # main utilities
 ## group
@@ -33,14 +33,8 @@ this program has no options and displays no output.
 * it easily handles directories with many files. any errors lead to a non-empty result
 * a directory is considered empty when it contains less than three entries - only the standard references "." and ".."
 
-## line-length
-reads from standard input and writes the byte character count of each line to standard output. unicode multibyte characters are counted as multiple characters.
-example run time: 5335407 lines, 0m6.532s.
-
-for comparison, the "wc" utility needs to be called per line, which is much slower.
-
 ## lines-filter
-this is a simpler grep alternative for filtering lines using logical and/or/not matches based on one or more fixed-string search terms.
+this is a simpler grep alternative that filters lines using logical and/or/not operations with one or more fixed-string search terms.
 
 ~~~
 arguments: [options] string ...
@@ -54,7 +48,39 @@ example:
 find . | lines-filter word1 word2
 ~~~
 
-# rename-lowercase
+## rate
+move files into 1/2/3/n rating directories. the most efficient way to sort and access large numbers of files by quality or relevancy.
+
+this program sorts files by moving them into or between numerically named directories. it first searches upwards in the directory structure to check if a numeric directory exists in the path. if found, only the file hierarchy under that number is moved into a directory with the same number. if no numeric directory exists in the path, a numeric directory is created in the current working directory, and the specified paths are moved under it.
+
+### usage
+~~~
+arguments: [-m] [+-]rating path ...
+~~~
+
+### behavior
+~~~
+cwd: /
+rate 2 /a/0/b/c -> /a/2/b/c
+~~~
+
+~~~
+cwd: /
+rate 2 /a/b/c -> /2/a/b/c
+~~~
+
+~~~
+cwd: /a/b
+rate 2 /a/b/c -> /a/b/2/c
+~~~
+
+### custom thunar right-click-menu actions
+add via the thunar gui, under "edit -> add custom actions..." using command patterns like this:
+~~~
+rate 1 %F
+~~~
+
+## rename-lowercase
 ~~~
 arguments: path ...
 ~~~
@@ -97,7 +123,7 @@ $ stemname .hidden
 .hidden
 ~~~
 
-# unique-name
+## unique-name
 ~~~
 arguments: path
 ~~~
@@ -119,7 +145,7 @@ arguments: [-r] directory ...
 * accepts multiple directories as arguments
 * with the option "-r" directories and sub-directories are listed recursively. the option must be the first argument if provided
 
-## performance
+### performance
 20402 files under /usr after multiple runs of each program like "time find /usr":
 * dcat: 0m1.657s
 * gnu find: 0m1.727s
@@ -127,36 +153,12 @@ arguments: [-r] directory ...
 * fd: 0m2.348s
 * eza (exa): 0m4.177s
 
-## rate
-*in development*
+as can be seen from the results, it is not significantly faster than "find" in this test case.
 
-this program sorts files by moving them into and between numerically named directories.
-
-first it searches upwards to see if a numeric directory name exists in path,
-* if yes, then only the file hierarchy under that number is moved into a directory with the given number.
-* if no numeric directory exists in path, a numeric directory is created in the current working directory and given paths are moved under there.
-
-behavior:
-~~~
-cwd: /
-rate 2 /a/0/b/c
-->
-/a/2/b/c
-~~~
-
-~~~
-cwd: /
-rate 2 /a/b/c
-->
-/2/a/b/c
-~~~
-
-~~~
-cwd: /a/b
-rate 2 /a/b/c
-->
-/a/b/2/c
-~~~
+## line-length
+reads from standard input and writes the byte character count of each line to standard output. unicode multibyte characters are counted as multiple characters.
+example run time: 5335407 lines, 0m6.532s.
+for comparison, the "wc" utility needs to be called per line, which can be extremely slow.
 
 # see also
 * [sph-script](https://github.com/sph-mn/sph-script)
