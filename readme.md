@@ -14,7 +14,55 @@ sh ./exe/compile
 ~~~
 this should create executables under `exe/compiled/`. these executables can copied anywhere as is because they do not depend on shared libraries. for example, the programs can be copied or symlinked into `/usr/bin` (as root) after which they should be available as commands on the command-line.
 
-# splice
+# main utilities
+## group
+~~~
+arguments: target file ...
+~~~
+
+move files into target directory. the directory is created if it does not exist. duplicate file names are not moved.
+
+## is-empty-directory
+~~~
+arguments: directory ...
+~~~
+
+the exit code will be 0 (success) if all given directories are empty, and 1 if any is not empty.
+this program has no options and displays no output.
+
+* it easily handles directories with many files. any errors lead to a non-empty result
+* a directory is considered empty when it contains less than three entries - only the standard references "." and ".."
+
+## line-length
+reads from standard input and writes the byte character count of each line to standard output. unicode multibyte characters are counted as multiple characters.
+example run time: 5335407 lines, 0m6.532s.
+
+for comparison, the "wc" utility needs to be called per line, which is much slower.
+
+## lines-filter
+this is a simpler grep alternative for filtering lines using logical and/or/not matches based on one or more fixed-string search terms.
+
+~~~
+arguments: [options] string ...
+  -a  matching lines must contain all strings. the default
+  -n  negate
+  -o  matching lines must contain at least one of the strings
+~~~
+
+example:
+~~~
+find . | lines-filter word1 word2
+~~~
+
+# rename-lowercase
+~~~
+arguments: path ...
+~~~
+
+replaces ascii uppercase characters in the file basename and renames the file if replacements occurred.
+the full old and new path are written to standard output.
+
+## splice
 ~~~
 arguments: directory ...
 description
@@ -26,34 +74,7 @@ options
   -v  display the current version number
 ~~~
 
-# group
-~~~
-arguments: target file ...
-~~~
-
-move files into target directory. the directory is created if it does not exist. duplicate file names are not moved.
-
-# is-empty-directory
-~~~
-arguments: directory ...
-~~~
-
-the exit code will be 0 (success) if all given directories are empty, and 1 if any is not empty.
-this program has no options and displays no output.
-
-* it easily handles directories with many files. any errors lead to a non-empty result
-* a directory is considered empty when it contains less than three entries - only the standard references "." and ".."
-
-# unique-name
-~~~
-arguments: path
-~~~
-
-displays the given path if it does not exist. otherwise, increments a counter suffix path.n until a file name that does not exist is found, then displays the modified path.
-
-one use case is to rename or move files without overwriting files that have the same name.
-
-# stemname
+## stemname
 removes the last dot-separated filename extension from the string.
 maximum string length is 65535 characters.
 
@@ -76,21 +97,16 @@ $ stemname .hidden
 .hidden
 ~~~
 
-# line-length
-reads from standard input and writes the byte character count of each line to standard output. unicode multibyte characters are counted as multiple characters.
-example run time: 5335407 lines, 0m6.532s.
-
-for comparison, the "wc" utility needs to be called per line, which is much slower.
-
-# rename-lowercase
+# unique-name
 ~~~
-arguments: path ...
+arguments: path
 ~~~
 
-replaces ascii uppercase characters in the file basename and renames the file if replacements occurred.
-the full old and new path are written to standard output.
+displays the given path if it does not exist. otherwise, increments a counter suffix path.n until a file name that does not exist is found, then displays the modified path.
 
-# 2
+one use case is to rename or move files without overwriting files that have the same name.
+
+# additional utilities
 ## dcat
 depends on linux (SYS_getdents64) and, for recursive listing, a filesystem with d_type support (for example ext4/3/2).
 
