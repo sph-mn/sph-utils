@@ -2,90 +2,95 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #define mode_and 0
 #define mode_or 1
+#define maximum_line_length 8192
 
-int parse_options(int argc, char** argv, int* mode, int* negate, char*** patterns, int* num_patterns) {
-  int opt;
-  while ((opt = getopt(argc, argv, "aon")) != -1) {
-    switch (opt) {
-    case 'a':
-      *mode = mode_and;
-      break;
-    case 'o':
-      *mode = mode_or;
-      break;
-    case 'n':
-      *negate = 1;
-      break;
-    default:
-      return -1;
-    }
-  }
-
-  *num_patterns = argc - optind;
-  if (*num_patterns > 0) {
-    *patterns = argv + optind;
-  } else {
-    *patterns = 0;
-  }
-  return 0;
-}
-
-int match_line(const char* line, char** patterns, int num_patterns, int mode) {
-  int i;
-  if (mode == mode_and) {
-    for (i = 0; i < num_patterns; i++) {
-      if (strstr(line, patterns[i]) == 0)
-        return 0;
-    }
-    return 1;
-  } else if (mode == mode_or) {
-    for (i = 0; i < num_patterns; i++) {
-      if (strstr(line, patterns[i]) != 0)
-        return 1;
-    }
-    return 0;
-  } else {
-    return 0;
-  }
-}
-
-void usage(const char* progname) {
-  fprintf(stderr, "usage: %s [options] arguments ...\n", progname);
-  fprintf(stderr, "  -a  matching lines must contain all strings. the default\n");
-  fprintf(stderr, "  -n  negate\n");
-  fprintf(stderr, "  -o  matching lines must contain at least one of the strings\n");
-}
+uint8_t no_patterns_text[] = "no search patterns specified.\n";
+uint8_t usage_text[] = "lines-filter [options] string ...\n"
+  "  -a  matching lines must contain all strings. the default\n"
+  "  -n  negate\n"
+  "  -o  matching lines must contain at least one of the strings\n";
 
 int main(int argc, char** argv) {
-  int mode = mode_and;
-  int negate = 0;
-  char** patterns = 0;
-  int num_patterns = 0;
-  char line[8192];
-  int matched;
+  int8_t opt;
+  uint16_t i;
+  uint16_t line_length;
+  uint16_t num_patterns = 0;
+  uint8_t case_insensitive = 1;
+  uint8_t line[maximum_line_length];
+  uint8_t matched;
+  uint8_t match_line_data[maximum_line_length];
+  uint8_t* match_line;
+  uint8_t mode = mode_and;
+  uint8_t negate = 0;
+  uint8_t** patterns = 0;
 
-  if (parse_options(argc, argv, &mode, &negate, &patterns, &num_patterns) != 0) {
-    usage(argv[0]);
+  // parse options
+  while ((opt = getopt(argc, argv, "aon")) != -1) {
+    if ('a' == opt) mode = mode_and;
+    else if ('o' == opt) mode = mode_or;
+    else if ('n' == opt) negate = 1;
+    else {
+      write(2, usage_text, strlen(usage_text));
+      return 1;
+    }
+  }
+
+  // parse search strings
+  num_patterns = argc - optind;
+  if (num_patterns > 0) patterns = (uint8_t**)(argv + optind);
+  else {
+    write(2, no_patterns_text, strlen(no_patterns_text));
+    write(2, usage_text, strlen(usage_text));
     return 1;
   }
 
-  if (num_patterns == 0) {
-    fprintf(stderr, "no search patterns specified.\n");
-    usage(argv[0]);
-    return 1;
+  // check for uppercase letters in patterns
+  for (i = 0; i < num_patterns; i += 1) {
+    uint8_t* p = patterns[i];
+    while (*p) {
+      if (*p >= 'A' && *p <= 'Z') {
+        case_insensitive = 0;
+        break;
+      }
+      p += 1;
+    }
+    if (!case_insensitive) break;
   }
 
+  // read and match lines
   while (fgets(line, sizeof(line), stdin) != 0) {
-    matched = match_line(line, patterns, num_patterns, mode);
-    if (negate)
-      matched = !matched;
-    if (matched)
-      fputs(line, stdout);
+    line_length = strlen(line);
+    if (case_insensitive) {
+      for (i = 0; i <= line_length; i += 1) {
+        match_line_data[i] = (line[i] >= 'A' && line[i] <= 'Z') ? line[i] | 0x20 : line[i];
+      }
+      match_line = match_line_data;
+    }
+    else match_line = line;
+    matched = 0;
+    if (mode == mode_and) {
+      matched = 1;
+      for (i = 0; i < num_patterns; i += 1) {
+        if (strstr(match_line, patterns[i]) == 0) {
+          matched = 0;
+          break;
+        }
+      }
+    } else if (mode == mode_or) {
+      for (i = 0; i < num_patterns; i += 1) {
+        if (strstr(match_line, patterns[i]) != 0) {
+          matched = 1;
+          break;
+        }
+      }
+    }
+    if (negate) matched = !matched;
+    if (matched) write(1, line, line_length);
   }
 
-  // no need to free patterns, as they point into argv
   return 0;
 }

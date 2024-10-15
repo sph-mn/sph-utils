@@ -43,6 +43,8 @@ arguments: [options] string ...
   -o  matching lines must contain at least one of the strings
 ~~~
 
+it uses smartcase: the search is case-sensitive only if any character in any of the search strings is uppercase (A-Z).
+
 example:
 ~~~
 find . | lines-filter word1 word2
@@ -135,8 +137,7 @@ one use case is to rename or move files without overwriting files that have the 
 # additional utilities
 ## dcat
 depends on linux (SYS_getdents64) and, for recursive listing, a filesystem with d_type support (for example ext4/3/2).
-
-list directory entries, and optionally all sub-directory entries, fast.
+lists directory entries, and optionally all sub-directory entries, fast.
 
 ~~~
 arguments: [-r] directory ...
