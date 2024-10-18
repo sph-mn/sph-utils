@@ -34,21 +34,39 @@ void ensure_directory_structure(const char* path) {
     mkdir(tmp, S_IRWXU);
 }
 
-// function to find a numeric directory in the path
+// Function to find a numeric directory in the path, excluding the last component
 int find_numeric_directory_in_path(char* path, int* dir_start, int* dir_len) {
     int len = strlen(path);
-    int i = len - 1;
+    int last_slash = -1;
+    int i;
+
+    // Find the position of the last '/' to exclude the last component
+    for (i = len - 1; i >= 0; i--) {
+        if (path[i] == '/') {
+            last_slash = i;
+            break;
+        }
+    }
+
+    // If there's no '/', there's nothing to search
+    if (last_slash <= 0) {
+        return 0;
+    }
+
+    // Start searching from just before the last '/'
     int num_start = -1, num_end = -1;
+    i = last_slash - 1;
+
     while (i >= 0) {
         if (path[i] == '/') {
             if (num_end != -1) {
-                // found a numeric directory
+                // Found a numeric directory
                 num_start = i + 1;
                 *dir_start = num_start;
                 *dir_len = num_end - num_start + 1;
                 return 1;
             }
-        } else if (isdigit(path[i])) {
+        } else if (isdigit((unsigned char)path[i])) {
             if (num_end == -1) {
                 num_end = i;
             }
@@ -57,7 +75,16 @@ int find_numeric_directory_in_path(char* path, int* dir_start, int* dir_len) {
         }
         i--;
     }
-    // no numeric directory found
+
+    // Check if the first component is a numeric directory
+    if (num_end != -1 && i < 0) {
+        num_start = 0;
+        *dir_start = num_start;
+        *dir_len = num_end - num_start + 1;
+        return 1;
+    }
+
+    // No numeric directory found
     return 0;
 }
 
