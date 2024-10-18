@@ -53,31 +53,31 @@ find . | lines-filter word1 word2
 ## rate
 move files into 1/2/3/n rating directories. the most efficient way to sort and access large numbers of files by quality or relevancy.
 
-this program sorts files by moving them into or between numerically named directories. it first searches upwards in the directory structure to check if a numeric directory exists in the path. if found, only the file hierarchy under that number is moved into a directory with the same number. if no numeric directory exists in the path, a numeric directory is created in the current working directory, and the specified paths are moved under it.
+this program sorts files by moving them into or between numerically named directories. it first searches upwards in the directory structure to check if a numeric directory exists in the path. if found, only the file hierarchy under that number is moved into a directory with the target number. if no numeric directory exists in the path, a numeric directory is created in the current working directory, and the specified paths are moved under it.
 
 ### usage
 ~~~
 arguments: [-m] [+-]rating path ...
+  -m  modify existing rating
 ~~~
 
 ### behavior
 ~~~
-cwd: /
 rate 2 /a/0/b/c -> /a/2/b/c
 ~~~
 
 ~~~
-cwd: /
 rate 2 /a/b/c -> /2/a/b/c
 ~~~
 
 ~~~
 cwd: /a/b
-rate 2 /a/b/c -> /a/b/2/c
+rate 2 c -> /a/b/2/c
 ~~~
 
-### custom thunar right-click-menu actions
-add via the thunar gui, under "edit -> add custom actions..." using command patterns like this:
+### thunar right-click-menu actions
+rate can be used as a custom action on files using the file context menu.
+these commands are configured in the thunar gui under "edit -> add custom actions..." with command patterns like this:
 ~~~
 rate 1 %F
 ~~~
@@ -87,7 +87,7 @@ rate 1 %F
 arguments: path ...
 ~~~
 
-replaces ascii uppercase characters in the file basename and renames the file if replacements occurred.
+replaces ascii uppercase characters in the file basename and renames the file if replacements occurred and the new file name does not already exist.
 the full old and new path are written to standard output.
 
 ## splice
@@ -95,7 +95,7 @@ the full old and new path are written to standard output.
 arguments: directory ...
 description
   merge the files of the given directories with their parent directories.
-  files with duplicate names are kept by renaming.
+  files with duplicate names are renamed by appending a number.
 options
   -1  splice if directory contains at most one file
   -h  display this help text
@@ -130,7 +130,7 @@ $ stemname .hidden
 arguments: path
 ~~~
 
-displays the given path if it does not exist. otherwise, increments a counter suffix path.n until a file name that does not exist is found, then displays the modified path.
+displays the given path if it does not exist. otherwise, increments a counter suffix "path.n" until a file name that does not exist is found, then displays the non-existent modified path.
 
 one use case is to rename or move files without overwriting files that have the same name.
 

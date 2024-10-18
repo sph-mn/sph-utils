@@ -34,30 +34,57 @@ void ensure_directory_structure(const char* path) {
     mkdir(tmp, S_IRWXU);
 }
 
-// function to find a numeric directory in the path
-int find_numeric_directory_in_path(char* path, int* dir_start, int* dir_len) {
+int find_numeric_directory_in_path(const char* path, int* dir_start, int* dir_len) {
     int len = strlen(path);
-    int i = len - 1;
-    int num_start = -1, num_end = -1;
-    while (i >= 0) {
-        if (path[i] == '/') {
-            if (num_end != -1) {
-                // found a numeric directory
-                num_start = i + 1;
-                *dir_start = num_start;
-                *dir_len = num_end - num_start + 1;
-                return 1;
-            }
-        } else if (isdigit(path[i])) {
-            if (num_end == -1) {
-                num_end = i;
-            }
-        } else {
-            num_end = -1;
-        }
-        i--;
+    int end = len - 1;
+
+    // Step 1: Skip trailing slashes
+    while (end >= 0 && path[end] == '/') {
+        end--;
     }
-    // no numeric directory found
+
+    if (end < 0) {
+        // Path consists only of slashes
+        return 0;
+    }
+
+    // Step 2: Iterate over each directory from the end
+    while (end >= 0) {
+        // Find the start of the current directory
+        int start = end;
+        while (start >= 0 && path[start] != '/') {
+            start--;
+        }
+
+        // Directory boundaries: (start + 1) to end
+        int current_dir_start = start + 1;
+        int current_dir_len = end - start;
+
+        // Step 3: Check if the entire directory name is numeric
+        int all_digits = 1;
+        for (int i = current_dir_start; i <= end; i++) {
+            if (!isdigit((unsigned char)path[i])) {
+                all_digits = 0;
+                break;
+            }
+        }
+
+        if (all_digits) {
+            *dir_start = current_dir_start;
+            *dir_len = current_dir_len;
+            return 1;
+        }
+
+        // Move to the previous directory
+        end = start - 1;
+
+        // Skip any additional slashes
+        while (end >= 0 && path[end] == '/') {
+            end--;
+        }
+    }
+
+    // No numeric directory found
     return 0;
 }
 
