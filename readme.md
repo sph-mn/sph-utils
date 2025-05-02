@@ -67,7 +67,7 @@ rate 2 /a/0/b/c -> /a/2/b/c
 ~~~
 
 ~~~
-rate 2 /a/b/c -> /2/a/b/c
+rate 2 /a/b/c -> /a/b/2/c
 ~~~
 
 ~~~

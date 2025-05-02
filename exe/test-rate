@@ -1,52 +1,29 @@
-#!/bin/sh
-
-# Assume the rate binary is accessible at the specified path
-rate="$PWD/exe/compiled/rate"
-
-# Set the test directory under /tmp
-TEST_DIR="/tmp/rate_test"
-
-# Clean up any previous test runs
-rm -rf "$TEST_DIR"
-mkdir -p "$TEST_DIR"
-cd "$TEST_DIR" || exit 1
-
-# Create test files and directories
-mkdir -p a/0/b
-touch a/0/b/c
-
-mkdir -p a/b
-touch a/b/c
-
-mkdir -p a/b
-touch a/b/c
-
-# Display initial directory structure
-echo "Initial directory structure:"
-find "$TEST_DIR"
-
-# Test 1
-echo
-echo "Test 1: $rate 2 $TEST_DIR/a/0/b/c"
-"$rate" 2 "$TEST_DIR/a/0/b/c"
-
-# Test 2
-echo "Test 2: $rate 2 $TEST_DIR/a/b/c"
-"$rate" 2 "$TEST_DIR/a/b/c"
-
-# Test 3
-echo "Test 3: (CWD is $TEST_DIR/a/b) $rate 2 $TEST_DIR/a/b/c"
-cd "$TEST_DIR/a/b" || exit 1
-"$rate" 2 "$TEST_DIR/a/b/c"
-
-# Go back to the test directory
-cd "$TEST_DIR" || exit 1
-
-# Display the final directory structure
-echo
-echo "Final directory structure:"
-find "$TEST_DIR"
-
-# Clean up
-echo "Cleaning up..."
-rm -rf "$TEST_DIR"
+fs = require "fs"
+path = require "path"
+os = require "os"
+cp = require "child_process"
+{test_runner_class} = require "../other/test_runner"
+test_runner = new test_runner_class()
+rate_bin = path.join process.cwd(), "exe/compiled/rate"
+tmp_dir = path.join os.tmpdir(), "rate_test"
+reset_fs = ->
+  fs.rmSync tmp_dir, recursive: true, force: true
+  fs.mkdirSync path.join(tmp_dir, "a/0/b"), recursive: true
+  fs.writeFileSync path.join(tmp_dir, "a/0/b/c"), ""
+  fs.mkdirSync path.join(tmp_dir, "a/b"), recursive: true
+  fs.writeFileSync path.join(tmp_dir, "a/b/c"), ""
+move_and_check = (src, dest, cwd_dir = tmp_dir) ->
+  reset_fs()
+  cp.execFileSync rate_bin, ["2", src], cwd: cwd_dir
+  fs.existsSync dest
+tests =
+  [
+    ["rate_move", move_and_check]
+    [path.join(tmp_dir, "a/0/b/c"), path.join(tmp_dir, "a/2/b/c")]
+    true
+    [path.join(tmp_dir, "a/b/c"), path.join(tmp_dir, "a/b/2/c")]
+    true
+    ["c", path.join(tmp_dir, "a/b/2/c"), path.join(tmp_dir, "a/b")]
+    true
+  ]
+test_runner.execute [tests]
