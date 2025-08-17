@@ -90,6 +90,31 @@ arguments: path ...
 replaces ascii uppercase characters in the file basename and renames the file if replacements occurred and the new file name does not already exist.
 the full old and new path are written to standard output.
 
+## replace-string
+just replace a string in files. no regular expression or escaping nonsense.
+
+* no arguments: show usage
+* no path: recursively work on text files in the current directory
+* prints changes that would be made by default
+* needs "-w" option to make replacements and update files in-place
+
+~~~
+$ replace-string
+usage: replacer [-w] <pattern> <replacement> [paths...]
+-w: write changes to files (instead of preview)
+
+$ replace-string domains families
+./path_1
+## domains
+## families
+
+./path_2
+## domains
+## families
+
+$ replace-string -w domains families
+~~~
+
 ## splice
 ~~~
 arguments: directory ...
