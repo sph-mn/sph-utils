@@ -12,8 +12,8 @@ int main(int argc, char** argv) {
   size_t counter = 1;
   size_t path1_len;
   unsigned char suffix_length = 0;
-  unsigned char* path1;
-  unsigned char* path2;
+  char* path1;
+  char* path2;
   if (2 != argc) {
     printf("arguments: path\n");
     return 1;

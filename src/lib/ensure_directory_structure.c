@@ -1,6 +1,6 @@
 #define ensure_directory_structure_max_depth 255
 
-int ensure_directory_structure(uint8_t* path) {
+int ensure_directory_structure(char* path) {
   /* modifies path temporarily. path may stay modified on error.
     test cases: //aa, //, /, aa, aa/bb/cc, aa/bb/, aa/bb//.
     algorithm:

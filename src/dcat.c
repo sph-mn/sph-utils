@@ -24,10 +24,10 @@ struct linux_dirent64 {
   char           d_name[];
 };
 
-uint8_t path[max_path_length];
-uint8_t long_path_text[] = "path too long\n";
+char path[max_path_length];
+char long_path_text[] = "path too long\n";
 
-int enter(uint8_t* path, uint16_t path_len, uint8_t depth) {
+int enter(char* path, uint16_t path_len, uint8_t depth) {
   int fd;
   ssize_t read_size;
   struct linux_dirent64* entry;

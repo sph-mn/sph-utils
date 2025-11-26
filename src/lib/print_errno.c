@@ -1,4 +1,4 @@
-uint8_t* errno_message;
+char* errno_message;
 uint8_t errno_message_len;
 
 #define print_errno() do { \

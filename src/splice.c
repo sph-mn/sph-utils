@@ -11,12 +11,12 @@
 #include "lib/print_errno.c"
 
 #define print(fd, var_name, string_literal)      \
-  uint8_t var_name[] = string_literal; \
+  char var_name[] = string_literal; \
   write(fd, var_name, sizeof(var_name) - 1);
 #define path_len_max 4096
 #define path_len_t uint16_t
 
-void cli(int argc, char** argv, size_t* directories_count, uint8_t*** directories, uint8_t* single) {
+void cli(int argc, char** argv, size_t* directories_count, char*** directories, uint8_t* single) {
   int opt;
   *single = 0;
   while (!(-1 == (opt = getopt(argc, argv, "1hv")))) {
@@ -44,16 +44,16 @@ void cli(int argc, char** argv, size_t* directories_count, uint8_t*** directorie
     exit(1);
   }
   *directories_count = argc - optind;
-  *directories = (uint8_t**)argv + optind;
+  *directories = argv + optind;
 }
 
 int main(int argc, char** argv) {
   DIR* dir;
-  uint8_t path1[path_len_max + 1];
-  uint8_t path2[path_len_max + 1];
+  char path1[path_len_max + 1];
+  char path2[path_len_max + 1];
   uint8_t single;
-  uint8_t* path;
-  uint8_t** directories;
+  char* path;
+  char** directories;
   size_t directories_count;
   struct dirent* entry;
   path_len_t directory_strlen;
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     path1[directory_strlen] = '/';
     memcpy(path2, directories[i], directory_strlen);
     path2[directory_strlen] = '/';
-    while (entry = readdir(dir)) {
+    while ((entry = readdir(dir))) {
       if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name)) {
         continue;
       }

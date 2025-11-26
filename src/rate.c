@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -88,14 +87,25 @@ int cli(int argc, char **argv, int16_t *new_rating, uint8_t *options) {
 int non_symlink_abspath(const char *path, char *resolved) {
   char temp[path_max];
   if (path[0] == '/') {
-    strncpy(temp, path, path_max);
+    size_t path_len = strnlen(path, path_max - 1);
+    memcpy(temp, path, path_len);
+    temp[path_len] = '\0';
   } else {
     char cwd[path_max];
     if (getcwd(cwd, sizeof(cwd)) == NULL) {
       perror("getcwd");
       return -1;
     }
-    snprintf(temp, path_max, "%s/%s", cwd, path);
+    size_t cwd_len = strnlen(cwd, path_max - 1);
+    size_t path_len = strnlen(path, path_max - 1);
+    if (cwd_len + 1 + path_len >= path_max) {
+      if (path_max > cwd_len + 2) path_len = path_max - cwd_len - 2;
+      else path_len = 0;
+    }
+    memcpy(temp, cwd, cwd_len);
+    temp[cwd_len] = '/';
+    memcpy(temp + cwd_len + 1, path, path_len);
+    temp[cwd_len + 1 + path_len] = '\0';
   }
   char *stack[1024];
   int top = 0;
@@ -103,19 +113,20 @@ int non_symlink_abspath(const char *path, char *resolved) {
   token = strtok(temp, "/");
   while (token != NULL) {
     if (strcmp(token, ".") == 0) {
-    }
-    else if (strcmp(token, "..") == 0) {
-      if (top > 0) top--;
-    }
-    else {
-      stack[top++] = token;
+    } else if (strcmp(token, "..") == 0) {
+      if (top > 0) top -= 1;
+    } else {
+      stack[top] = token;
+      top = top + 1;
     }
     token = strtok(NULL, "/");
   }
   strcpy(resolved, "/");
   for (int i = 0; i < top; i++) {
     strcat(resolved, stack[i]);
-    if (i < top - 1) strcat(resolved, "/");
+    if (i < top - 1) {
+      strcat(resolved, "/");
+    }
   }
   return 0;
 }
@@ -131,9 +142,7 @@ int main(int argc, char **argv) {
       perror("lstat");
       continue;
     }
-    if (non_symlink_abspath(argv[i], old_path) != 0) {
-      continue;
-    }
+    if (non_symlink_abspath(argv[i], old_path) != 0) continue;
     int dir_start, dir_len;
     int found = find_numeric_directory_in_path(old_path, &dir_start, &dir_len);
     if (found) {
@@ -157,14 +166,27 @@ int main(int argc, char **argv) {
     }
     else {
       char *slash = strrchr(old_path, '/');
-      if (!slash) {
-        continue;
-      }
-      size_t parent_len = slash - old_path;
+      if (!slash) continue;
+      size_t parent_len = (size_t)(slash - old_path);
       char parent[path_max];
       memcpy(parent, old_path, parent_len);
       parent[parent_len] = '\0';
-      snprintf(new_path, sizeof(new_path), "%s/%d%s", parent, new_rating, slash);
+      char rating_buf[16];
+      sprintf(rating_buf, "%d", new_rating);
+      size_t rating_len = strlen(rating_buf);
+      size_t suffix_len = strlen(slash);
+      if (parent_len + 1 + rating_len + suffix_len >= path_max) {
+        if (path_max > parent_len + 1 + rating_len + 1) {
+          suffix_len = path_max - parent_len - 1 - rating_len - 1;
+        } else {
+          suffix_len = 0;
+        }
+      }
+      memcpy(new_path, parent, parent_len);
+      new_path[parent_len] = '/';
+      memcpy(new_path + parent_len + 1, rating_buf, rating_len);
+      memcpy(new_path + parent_len + 1 + rating_len, slash, suffix_len);
+      new_path[parent_len + 1 + rating_len + suffix_len] = '\0';
     }
     char *dir_end = strrchr(new_path, '/');
     if (dir_end) {

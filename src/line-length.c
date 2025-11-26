@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     length += start;
   }
   if (errno) {
-    const uint8_t* message = strerror(errno);
+    const char* message = strerror(errno);
     write(2, message, strlen(message));
     return 1;
   }

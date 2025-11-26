@@ -13,9 +13,9 @@
 #include "lib/print_errno.c"
 
 int main(int argc, char** argv) {
-  uint8_t help_text[] = "arguments: target path ...\n";
-  uint8_t duplicate_text[] = "file exists\n";
-  uint8_t target[PATH_MAX];
+  char help_text[] = "arguments: target path ...\n";
+  char duplicate_text[] = "file exists\n";
+  char target[PATH_MAX];
   uint16_t target_len, source_len, basename_index;
   if (3 > argc) {
     write(1, help_text, sizeof(help_text));

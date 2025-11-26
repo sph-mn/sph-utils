@@ -15,6 +15,21 @@ sh ./exe/compile
 this should create executables under `exe/compiled/`. these executables can copied anywhere as is because they do not depend on shared libraries. for example, the programs can be copied or symlinked into `/usr/bin` (as root) after which they should be available as commands on the command-line as long as the executable bit is set.
 
 # main utilities
+## files-filter
+~~~
+arguments: [options] keyword ...
+description
+  search the contents of the given files for matching text.
+  input paths are read from standard input, one per line.
+  case insensitive unless a keyword contains an uppercase letter.
+options
+  -a  all keywords must match. this is the default
+  -o  any keyword may match
+  -n  negate the match result
+  -m  match on whole file content instead of individual lines
+  -l  print matching lines in addition to file paths
+~~~
+
 ## group
 ~~~
 arguments: target file ...

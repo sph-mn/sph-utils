@@ -15,9 +15,9 @@ const uint8_t case_table[] = {
   ['Y'] = 'y', ['Z'] = 'z'
 };
 
-uint8_t help_text[] = "arguments: path ...\n";
-uint8_t long_path_text[] = "path too long\n";
-uint8_t exists_text[] = "target already exists\n";
+char help_text[] = "arguments: path ...\n";
+char long_path_text[] = "path too long\n";
+char exists_text[] = "target already exists\n";
 
 int main(int argc, char** argv) {
   if (argc < 2) {
@@ -26,11 +26,11 @@ int main(int argc, char** argv) {
   }
   size_t len;
   size_t j;
-  uint8_t new[max_path_len + 1];
-  uint8_t modified;
+  char new[max_path_len + 1];
+  char modified;
   for (int i = 1; i < argc; i += 1) {
     // check if path too short or too long
-    const uint8_t* old = argv[i];
+    const char* old = argv[i];
     len = strlen(old);
     if (!len) continue;
     if (max_path_len < len) {
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
       j -= 1;
       if ('A' <= old[j] && old[j] <= 'Z') {
         modified = 1;
-        new[j] = case_table[old[j]];
+        new[j] = case_table[(size_t)old[j]];
       }
       else new[j] = old[j];
     }

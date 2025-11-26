@@ -8,8 +8,8 @@
 #define mode_or 1
 #define maximum_line_length 8192
 
-uint8_t no_patterns_text[] = "no search patterns specified.\n";
-uint8_t usage_text[] = "lines-filter [options] string ...\n"
+char no_patterns_text[] = "no search patterns specified.\n";
+char usage_text[] = "lines-filter [options] string ...\n"
   "  -a  matching lines must contain all strings. the default\n"
   "  -n  negate\n"
   "  -o  matching lines must contain at least one of the strings\n";
@@ -20,13 +20,13 @@ int main(int argc, char** argv) {
   uint16_t line_length;
   uint16_t num_patterns = 0;
   uint8_t case_insensitive = 1;
-  uint8_t line[maximum_line_length];
+  char line[maximum_line_length];
   uint8_t matched;
-  uint8_t match_line_data[maximum_line_length];
-  uint8_t* match_line;
+  char match_line_data[maximum_line_length];
+  char* match_line;
   uint8_t mode = mode_and;
   uint8_t negate = 0;
-  uint8_t** patterns = 0;
+  char** patterns = 0;
 
   // parse options
   while ((opt = getopt(argc, argv, "aon")) != -1) {
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
 
   // parse search strings
   num_patterns = argc - optind;
-  if (num_patterns > 0) patterns = (uint8_t**)(argv + optind);
+  if (num_patterns > 0) patterns = argv + optind;
   else {
     write(2, no_patterns_text, strlen(no_patterns_text));
     write(2, usage_text, strlen(usage_text));
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 
   // check for uppercase letters in patterns
   for (i = 0; i < num_patterns; i += 1) {
-    uint8_t* p = patterns[i];
+    char* p = patterns[i];
     while (*p) {
       if (*p >= 'A' && *p <= 'Z') {
         case_insensitive = 0;
