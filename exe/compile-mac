@@ -1,0 +1,21 @@
+#!/bin/sh
+set -e
+
+optimisation=3
+
+# use apple clang via xcrun
+compiler="xcrun --sdk macosx clang"
+
+warnings="-Wall -Wfatal-errors"
+# do not define _POSIX_C_SOURCE here, it hides bsd / darwin extensions
+# if you want the full darwin api plus posix, you can add -D_DARWIN_C_SOURCE
+compiler_options="-std=c17 -pedantic-errors -D_FILE_OFFSET_BITS=64 $warnings -fno-common -fno-math-errno -O$optimisation"
+
+prefix=exe/compiled
+mkdir -p "$prefix"
+
+for name in files-filter replace-string rate lines-filter splice is-empty-directory unique-name line-length stemname rename-lowercase group
+do
+  $compiler $compiler_options "src/$name.c" -o "$prefix/$name"
+  chmod +x "$prefix/$name"
+done

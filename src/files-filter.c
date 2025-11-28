@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/types.h>
+#include <sys/sysctl.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -419,6 +420,15 @@ static void* worker_thread(void* argument)
       &context->output_mutex);
   }
   return 0;
+}
+
+int get_thread_count(void) {
+  long n = sysconf(_SC_NPROCESSORS_ONLN);
+  if (n > 0) return (int)n;
+  int m;
+  size_t s = sizeof(m);
+  if (sysctlbyname("hw.ncpu", &m, &s, NULL, 0) == 0) return m;
+  return 1;
 }
 
 int main(int argc, char** argv)
