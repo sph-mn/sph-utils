@@ -15,6 +15,13 @@ sh ./exe/compile
 this should create executables under `exe/compiled/`. these executables can copied anywhere as is because they do not depend on shared libraries. for example, the programs can be copied or symlinked into `/usr/bin` (as root) after which they should be available as commands on the command-line as long as the executable bit is set.
 
 # main utilities
+## drop-long-lines
+~~~
+arguments: [limit]
+~~~
+
+reads lines from standard input and only writes those to standard output that are shorter than limit, which is 300 by default.
+
 ## files-filter
 ~~~
 arguments: [options] keyword ...

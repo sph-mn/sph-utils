@@ -15,7 +15,7 @@ compiler_options="-std=c17 -pedantic-errors -D_POSIX_C_SOURCE=200809L -D_FILE_OF
 prefix=exe/compiled
 mkdir -p "$prefix"
 
-for name in files-filter replace-string rate lines-filter splice is-empty-directory unique-name line-length stemname dcat rename-lowercase group
+for name in drop-long-lines files-filter replace-string rate lines-filter splice is-empty-directory unique-name line-length stemname dcat rename-lowercase group
 do
   "$compiler" $compiler_options "src/$name.c" -o "$prefix/$name"
   chmod +x "$prefix/$name"
