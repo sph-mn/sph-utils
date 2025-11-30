@@ -4,6 +4,12 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/types.h>
+#if defined(__has_include)
+#  if __has_include(<sys/sysctl.h>)
+#    define have_sys_sysctl_h 1
+#    include <sys/sysctl.h>
+#  endif
+#endif
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -421,6 +427,24 @@ static void* worker_thread(void* argument)
   return 0;
 }
 
+int get_thread_count(void) {
+  long n;
+  n = -1;
+#if defined(_SC_NPROCESSORS_ONLN)
+  n = sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+  if (n > 0) return (int)n;
+#if defined(have_sys_sysctl_h)
+  {
+    int m;
+    size_t s;
+    s = sizeof(m);
+    if (sysctlbyname("hw.ncpu", &m, &s, 0, 0) == 0 && m > 0) return m;
+  }
+#endif
+  return 1;
+}
+
 int main(int argc, char** argv)
 {
   simple_option_parser_declare(options);
@@ -439,8 +463,7 @@ int main(int argc, char** argv)
   size_t paths_used;
   char* paths_data;
   worker_context_t context;
-  long cpu_count;
-  uint32_t thread_count;
+  int thread_count;
   pthread_t threads[256];
 
   simple_option_parser_set_option(options, 'a', 0);
@@ -499,12 +522,10 @@ int main(int argc, char** argv)
   pthread_mutex_init(&context.index_mutex, 0);
   pthread_mutex_init(&context.output_mutex, 0);
 
-  cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
-  if (cpu_count <= 0) thread_count = 1;
-  else thread_count = (uint32_t)cpu_count;
-
+  thread_count = get_thread_count();
+  if (thread_count < 1) thread_count = 1;
   if (thread_count > 256) thread_count = 256;
-  if ((size_t)thread_count > paths_used) thread_count = (uint32_t)paths_used;
+  if ((size_t)thread_count > paths_used) thread_count = (int)paths_used;
   if (thread_count == 0) {
     pthread_mutex_destroy(&context.index_mutex);
     pthread_mutex_destroy(&context.output_mutex);

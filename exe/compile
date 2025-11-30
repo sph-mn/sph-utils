@@ -1,6 +1,5 @@
 #!/bin/sh -e
 
-
 optimisation=3
 
 if command -v musl-gcc >/dev/null; then

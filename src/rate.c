@@ -8,9 +8,6 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #define path_max 4096
-void print_errno() {
-  perror("");
-}
 void ensure_directory_structure(const char *path) {
   char tmp[path_max];
   snprintf(tmp, sizeof(tmp), "%s", path);

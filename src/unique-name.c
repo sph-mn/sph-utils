@@ -11,7 +11,7 @@
 int main(int argc, char** argv) {
   size_t counter = 1;
   size_t path1_len;
-  unsigned char suffix_length = 0;
+  char suffix_length = 0;
   char* path1;
   char* path2;
   if (2 != argc) {
