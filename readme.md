@@ -182,9 +182,12 @@ displays the given path if it does not exist. otherwise, increments a counter su
 one use case is to rename or move files without overwriting files that have the same name.
 
 # additional utilities
+more experimental and not compiled by the default compile script.
+
 ## dcat
-depends on linux (SYS_getdents64) and, for recursive listing, a filesystem with d_type support (for example ext4/3/2).
 lists directory entries, and optionally all sub-directory entries, fast.
+uses an alternative directory listing function SYS_getdents64.
+depends on linux and, for recursive listing, a filesystem with d_type support (for example ext4/3/2).
 
 ~~~
 arguments: [-r] directory ...

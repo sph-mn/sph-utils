@@ -136,7 +136,7 @@ static void traverse(const char* path, int write_changes, const uint8_t* pat, si
 }
 
 static void print_usage(void) {
-  fputs("usage: replacer [-w] <pattern> <replacement> [paths...]\n", stdout);
+  fputs("arguments: [-w] <pattern> <replacement> [paths...]\n", stdout);
   fputs("-w: write changes to files (instead of preview)\n", stdout);
 }
 

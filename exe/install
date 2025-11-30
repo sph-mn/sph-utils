@@ -1,5 +1,3 @@
-#!/bin/sh
-
 if test -n "$1"; then
   prefix="$1"
 fi
@@ -19,9 +17,8 @@ for name in \
   unique-name \
   line-length \
   stemname \
-  dcat \
   rename-lowercase \
   group
 do
-  ln -sf "$PWD/exe/compiled/$name" "$bindir/$name" || exit 1
+  cp "$PWD/exe/compiled/$name" "$bindir/$name" || exit 1
 done
