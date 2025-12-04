@@ -1,18 +1,31 @@
 # sph-utils
 
-basic file, shell and text manipulation utilities.
-compared to the [sph-script](https://github.com/sph-mn/sph-script) collection of scripts, the programs here run more efficiently and are written in c. especially when the commands are used frequently, these utilities are much faster compared to shell scripts.
+minimalist filesystem and text utilities.
 
 # dependencies
-* c 2011 standard library (for example [musl-libc](https://musl.libc.org/) or [glibc](https://www.gnu.org/software/libc/))
-* posix 2008 features (for example linux or freebsd)
+* c 2017 standard library (for example [musl-libc](https://musl.libc.org/) or [glibc](https://www.gnu.org/software/libc/))
+* posix 2008 (for example linux or freebsd)
 * for the provided compile script: shell, gcc
 
 # installation
 ~~~
-sh ./exe/compile
+./exe/compile
 ~~~
-this should create executables under `exe/compiled/`. these executables can copied anywhere as is because they do not depend on shared libraries. for example, the programs can be copied or symlinked into `/usr/bin` (as root) after which they should be available as commands on the command-line as long as the executable bit is set.
+this should create executables under `exe/compiled/`. these executables can be copied to any compatible x86_64 system running the same os or any version with a compatible kernel.
+
+executing as root
+
+~~~
+./exe/install /
+~~~
+installs to /usr/bin.
+
+~~~
+./exe/install-symlink /
+~~~
+installs to /usr/bin as symlinks into `exe/compiled/`.
+
+afterwards, the commands should be immediately available as commands on the command-line.
 
 # main utilities
 ## drop-long-lines
@@ -23,6 +36,10 @@ arguments: [limit]
 reads lines from standard input and only writes those to standard output that are shorter than limit, which is 300 by default.
 
 ## files-filter
+
+search in text files. this can be used for extremely fast command-line filesystem search tools with shell scripts (see below).
+
+usage:
 ~~~
 arguments: [options] keyword ...
 description
@@ -35,6 +52,34 @@ options
   -n  negate the match result
   -m  match on whole file content instead of individual lines
   -l  print matching lines in addition to file paths
+~~~
+
+`search`
+~~~
+#!/bin/sh
+# recursively in ".", output "path" for each file with a line containing all input strings.
+# arguments: string ...
+find . -type d \( -name node_modules -o -name .git -o -name cache -o -name vendor \) -prune -o -type f -print | files-filter "$@"
+~~~
+
+`searchl`
+~~~
+#!/bin/sh
+# recursively in ".", output "path: line" for each line containing all input strings.
+# arguments: string ...
+find . -type d \( -name node_modules -o -name .git -o -name cache -o -name vendor \) -prune -o -type f -print | files-filter -l "$@"
+~~~
+
+examples
+~~~
+# search for "TODO" or "FIXME" anywhere in the current directory, show filenames + matching lines
+searchl -o TODO FIXME
+
+# require both "user" AND "auth" in the same file
+searchl user auth
+
+# find files that do NOT contain "deprecated"
+search -n deprecated
 ~~~
 
 ## group
@@ -67,20 +112,57 @@ arguments: [options] string ...
 
 it uses smartcase: the search is case-sensitive only if any character in any of the search strings is uppercase (A-Z).
 
-example:
+examples:
 ~~~
 find . | lines-filter word1 word2
 ~~~
 
-## rate
-move files into 1/2/3/n rating directories. the most efficient way to sort and access large numbers of files by quality or relevancy.
+~~~
+some-command | lines-filter -o jpg png gif
+~~~
 
-this program sorts files by moving them into or between numerically named directories. it first searches upwards in the directory structure to check if a numeric directory exists in the path. if found, only the file hierarchy under that number is moved into a directory with the target number. if no numeric directory exists in the path, a numeric directory is created in the current working directory, and the specified paths are moved under it.
+### fig
+lines-filter can be used to build powerful filesystem path search scripts.
+for example what is called here `fig`, a name that is a combination of find and grep.
+
+~~~
+#!/bin/sh
+# recursively in ".", list relative paths where the path itself contains all input strings.
+# arguments: [lines-filter-option ...] string ...
+
+find . -type d \( -name node_modules -o -name .git -o -name cache -o -name vendor \) -prune -o -print | lines-filter "$@"
+~~~
+
+it ignores a few commonly irrelevant paths.
+
+usage:
+~~~
+fig src .c
+~~~
+
+## rate
+move files into 1/2/3/n rating directories. a way to quickly sort and access large numbers of files by quality or relevancy.
+
+the program sorts files by moving them into, or between, numerically named directories. it first searches upwards in the path to check if a numeric directory exists in the ancestor directory hierarchy. if found, only the directory hierarchy under that number is moved into a directory named as the target number. if no numeric directory exists in the path, a directory for the target rating is created in the current working directory and the specified paths are moved under it.
+
+files will not be moved if a file with the same name already exists at the destination.
 
 ### usage
 ~~~
 arguments: [-m] [+-]rating path ...
   -m  modify existing rating
+~~~
+
+examples
+~~~
+# rate files down by one (or up, depending on how ratings are interpreted)
+rate -m +1 somepath1 somepath2
+
+# rate file up
+rate -m -1 somepath
+
+# score zero can be used for grouping files that do not yet have a rating
+rate 0 somepath1
 ~~~
 
 ### behavior
@@ -90,11 +172,6 @@ rate 2 /a/0/b/c -> /a/2/b/c
 
 ~~~
 rate 2 /a/b/c -> /a/b/2/c
-~~~
-
-~~~
-cwd: /a/b
-rate 2 c -> /a/b/2/c
 ~~~
 
 ### thunar right-click-menu actions
@@ -121,11 +198,17 @@ just replace a string in files. no regular expression or escaping nonsense.
 * needs "-w" option to make replacements and update files in-place
 
 ~~~
+replace-string -w aa bb **/*.txt
+~~~
+
+~~~
 $ replace-string
 usage: replacer [-w] <pattern> <replacement> [paths...]
 -w: write changes to files (instead of preview)
+~~~
 
-$ replace-string domains families
+~~~
+replace-string domains families
 ./path_1
 ## domains
 ## families
@@ -134,7 +217,7 @@ $ replace-string domains families
 ## domains
 ## families
 
-$ replace-string -w domains families
+replace-string -w domains families
 ~~~
 
 ## splice

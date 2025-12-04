@@ -9,7 +9,7 @@ else
 fi
 
 warnings="-Wall -Wfatal-errors"
-compiler_options="-std=c17 -pedantic-errors -D_POSIX_C_SOURCE=200809L -D_FILE_OFFSET_BITS=64 $warnings -fno-common -fno-math-errno -O$optimisation"
+compiler_options="-std=c17 -pedantic-errors -D_POSIX_C_SOURCE=200809L -D_FILE_OFFSET_BITS=64 $warnings -fno-common -fno-math-errno -O$optimisation -static -march=x86-64"
 
 prefix=exe/compiled
 mkdir -p "$prefix"

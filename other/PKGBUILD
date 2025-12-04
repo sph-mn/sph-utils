@@ -1,5 +1,5 @@
 pkgname=sph-utils-git
-pkgver=c73f71b
+pkgver=0babb98
 pkgrel=1
 pkgdesc='useful file, shell and text manipulation utilities'
 arch=('x86_64')
