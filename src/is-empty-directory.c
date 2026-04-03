@@ -1,6 +1,5 @@
 #include <dirent.h>
 #include <errno.h>
-
 int main(int argc, char** argv) {
   DIR* dir;
   for (unsigned int i = 1; i < argc; i += 1) {

@@ -1,124 +1,136 @@
+
+#include <dirent.h>
+#include <errno.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <libgen.h>
-#include <inttypes.h>
-#include <errno.h>
-#include "lib/resolve_duplicate_filename.c"
-#include "lib/print_errno.c"
-
-#define print(fd, var_name, string_literal)      \
-  char var_name[] = string_literal; \
-  write(fd, var_name, sizeof(var_name) - 1);
-#define path_len_max 4096
-#define path_len_t uint16_t
-
-void cli(int argc, char** argv, size_t* directories_count, char*** directories, uint8_t* single) {
-  int opt;
-  *single = 0;
-  while (!(-1 == (opt = getopt(argc, argv, "1hv")))) {
-    if ('1' == opt) {
-      *single = 1;
-    }
-    else if ('h' == opt) {
-      print(1, help_text, "arguments: directory ...\n"
-        "description\n"
-        "  merge the files of the given directories with their parent directories.\n"
-        "  files with duplicate names are kept by renaming.\n"
-        "options\n"
-        "  -1  splice if directory contains at most one file\n"
-        "  -h  display this help text\n"
-        "  -v  display the current version number\n");
-      exit(0);
-    }
-    else if ('v' == opt) {
-      print(1, version_text, "v0.1\n");
-      exit(0);
-    }
+#define path_length_max 4096
+char help_text[] =
+  "arguments: directory ...\n"
+  "description\n"
+  "  merge the files of the given directories with their parent directories.\n"
+  "  files with duplicate names are kept by renaming.\n"
+  "options\n"
+  "  -1  splice if directory contains at most one file\n"
+  "  -h  display this help text\n"
+  "  -v  display the current version number\n";
+char version_text[] = "v0.1\n";
+char missing_directory_text[] = "missing argument: directory\n";
+char inaccessible_directory_text[] = "directory not accessible. ";
+char path_too_long_text[] = "path too long. ";
+char duplicate_rename_failed_text[] = "target already exists and renaming source failed. ";
+int resolve_duplicate_filename(char *path, size_t path_length) {
+  size_t counter;
+  int suffix_length;
+  counter = 1;
+  while (!access(path, F_OK)) {
+    suffix_length = snprintf(path + path_length, path_length_max + 1 - path_length, ".%ju", counter);
+    if (suffix_length < 0) return 1;
+    counter += 1;
   }
-  if (argc == optind) {
-    print(2, missing_directory_text, "missing argument: directory\n");
-    exit(1);
-  }
-  *directories_count = argc - optind;
-  *directories = argv + optind;
+  return 0;
 }
-
-int main(int argc, char** argv) {
-  DIR* dir;
-  char path1[path_len_max + 1];
-  char path2[path_len_max + 1];
-  uint8_t single;
-  char* path;
-  char** directories;
-  size_t directories_count;
-  struct dirent* entry;
-  path_len_t directory_strlen;
-  path_len_t entry_strlen;
-  cli(argc, argv, &directories_count, &directories, &single);
-  for (size_t i = 0; i < directories_count; i += 1) {
-    dir = opendir(directories[i]);
-    if (!dir) {
-      fprintf(stderr, "directory not accessible. %s\n", directories[i]);
+void print_errno(void) {
+  char *message;
+  message = strerror(errno);
+  write(2, message, strlen(message));
+  write(2, "\n", 1);
+}
+int main(int argument_count, char **argument_values) {
+  int argument_index;
+  uint8_t option_single;
+  DIR *directory;
+  struct dirent *entry;
+  char **directories;
+  size_t directory_count;
+  size_t directory_index;
+  size_t directory_length;
+  size_t entry_length;
+  char source_path[path_length_max + 1];
+  char target_path[path_length_max + 1];
+  char *path_end;
+  argument_index = 1;
+  option_single = 0;
+  while (argument_index < argument_count) {
+    if (!strcmp(argument_values[argument_index], "-1")) option_single = 1;
+    else if (!strcmp(argument_values[argument_index], "-h")) {
+      write(1, help_text, sizeof(help_text) - 1);
+      return 0;
+    } else if (!strcmp(argument_values[argument_index], "-v")) {
+      write(1, version_text, sizeof(version_text) - 1);
+      return 0;
+    } else break;
+    argument_index += 1;
+  }
+  if (argument_index == argument_count) {
+    write(2, missing_directory_text, sizeof(missing_directory_text) - 1);
+    return 1;
+  }
+  directory_count = argument_count - argument_index;
+  directories = argument_values + argument_index;
+  for (directory_index = 0; directory_index < directory_count; directory_index += 1) {
+    directory = opendir(directories[directory_index]);
+    if (!directory) {
+      write(2, inaccessible_directory_text, sizeof(inaccessible_directory_text) - 1);
+      write(2, directories[directory_index], strlen(directories[directory_index]));
+      write(2, "\n", 1);
       continue;
     }
-    if (single) {
-      if (readdir(dir) && readdir(dir) && readdir(dir) && readdir(dir)) {
+    if (option_single) {
+      if (readdir(directory) && readdir(directory) && readdir(directory) && readdir(directory)) {
+        closedir(directory);
         continue;
       }
-      rewinddir(dir);
+      rewinddir(directory);
     }
-    // limit path length
-    directory_strlen = strlen(directories[i]);
-    if (path_len_max < directory_strlen + 5) {
-      fprintf(stderr, "path too long. %s\n", directories[i]);
+    directory_length = strlen(directories[directory_index]);
+    if (path_length_max < directory_length + 5) {
+      write(2, path_too_long_text, sizeof(path_too_long_text) - 1);
+      write(2, directories[directory_index], directory_length);
+      write(2, "\n", 1);
+      closedir(directory);
+      continue;
     }
-    memcpy(path1, directories[i], directory_strlen);
-    path1[directory_strlen] = '/';
-    memcpy(path2, directories[i], directory_strlen);
-    path2[directory_strlen] = '/';
-    while ((entry = readdir(dir))) {
-      if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name)) {
+    path_end = stpcpy(source_path, directories[directory_index]);
+    *path_end = '/';
+    path_end += 1;
+    *path_end = 0;
+    path_end = stpcpy(target_path, directories[directory_index]);
+    *path_end = '/';
+    path_end += 1;
+    *path_end = '.';
+    path_end += 1;
+    *path_end = '.';
+    path_end += 1;
+    *path_end = '/';
+    path_end += 1;
+    *path_end = 0;
+    while ((entry = readdir(directory))) {
+      if (!strcmp(entry->d_name, ".")) continue;
+      if (!strcmp(entry->d_name, "..")) continue;
+      entry_length = strlen(entry->d_name);
+      if (path_length_max < directory_length + 3 + entry_length + 1) {
+        write(2, path_too_long_text, sizeof(path_too_long_text) - 1);
+        write(2, directories[directory_index], directory_length);
+        write(2, "\n", 1);
         continue;
       }
-      // limit path length
-      entry_strlen = strlen(entry->d_name);
-      if (path_len_max < directory_strlen + 3 + entry_strlen + 1) {
-        fprintf(stderr, "path too long. %s\n", directories[i]);
-      }
-      // source path
-      path = path1 + directory_strlen + 1;
-      memcpy(path, entry->d_name, entry_strlen);
-      path += entry_strlen;
-      *path = 0;
-      // target path
-      path = path2 + directory_strlen + 1;
-      *path = '.';
-      path += 1;
-      *path = '.';
-      path += 1;
-      *path = '/';
-      path += 1;
-      memcpy(path, entry->d_name, entry_strlen);
-      path += entry_strlen;
-      *path = 0;
-      // resolve duplicates
-      if (!access(path2, F_OK)) {
-        if (resolve_duplicate_filename(path2, directory_strlen + 3 + entry_strlen + 1)) {
-          fprintf(stderr, "target already exists and renaming source failed. %s\n", path2);
+      stpcpy(source_path + directory_length + 1, entry->d_name);
+      stpcpy(target_path + directory_length + 4, entry->d_name);
+      if (!access(target_path, F_OK)) {
+        if (resolve_duplicate_filename(target_path, directory_length + 3 + entry_length + 1)) {
+          write(2, duplicate_rename_failed_text, sizeof(duplicate_rename_failed_text) - 1);
+          write(2, target_path, strlen(target_path));
+          write(2, "\n", 1);
           continue;
         }
       }
-      // move
-      if (rename(path1, path2)) {
-        print_errno();
-      }
+      if (rename(source_path, target_path)) print_errno();
     }
-    closedir(dir);
-    rmdir(directories[i]);
+    closedir(directory);
+    rmdir(directories[directory_index]);
   }
   return 0;
 }

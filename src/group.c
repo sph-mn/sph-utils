@@ -4,11 +4,9 @@
 #include <sys/stat.h>  // mkdir
 #include <string.h>  // memcpy
 #include <stdio.h>  // rename
-
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
-
 #include "lib/ensure_directory_structure.c"
 #include "lib/print_errno.c"
 

@@ -19,6 +19,9 @@
 #define read_paths_memory_error() do {read_paths_display_error("%s", "memory allocation failed"); return 0;} while (0)
 
 static const size_t paths_data_size_min = 4096;
+
+// simple option parser
+
 typedef struct {
   uint8_t is_supported;
   uint8_t requires_value;
