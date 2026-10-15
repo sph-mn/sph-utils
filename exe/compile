@@ -19,6 +19,3 @@ do
   "$compiler" $compiler_options "src/$name.c" -o "$prefix/$name"
   chmod +x "$prefix/$name"
 done
-
-#name=stdio-command-gui
-#$compiler $compiler_options src/$name.c -o $prefix/$name.c $(pkg-config --cflags --libs gtk4 gio-2.0)

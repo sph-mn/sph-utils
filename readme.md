@@ -133,7 +133,7 @@ for example what is called here `fig`, a name that is a combination of find and 
 find . -type d \( -name node_modules -o -name .git -o -name cache -o -name vendor \) -prune -o -print | lines-filter "$@"
 ~~~
 
-it ignores a few commonly irrelevant paths.
+this example ignores a few commonly irrelevant paths.
 
 usage:
 ~~~
@@ -141,7 +141,7 @@ fig src .c
 ~~~
 
 ## rate
-move files into 1/2/3/n rating directories. a way to quickly sort and access large numbers of files by quality or relevancy.
+move files into 1/2/3/n rating directories. a way to quickly sort, score, and access large numbers of files by quality or relevancy.
 
 the program sorts files by moving them into, or between, numerically named directories. it first searches upwards in the path to check if a numeric directory exists in the ancestor directory hierarchy. if found, only the directory hierarchy under that number is moved into a directory named as the target number. if no numeric directory exists in the path, a directory for the target rating is created in the current working directory and the specified paths are moved under it.
 

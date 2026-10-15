@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+compiler=gcc
+target_dir=exe/compiled
+
+warnings="-Wall -Wextra -Wfatal-errors"
+cflags="-std=c17 $warnings -O3"
+
+src="fkeys.c"
+out="$target_dir/fkeys"
+
+mkdir -p "$target_dir"
+
+$compiler $cflags "$src" -o "$out" -lX11
