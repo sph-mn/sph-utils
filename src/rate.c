@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <errno.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #define path_max 4096
 void ensure_directory_structure(const char *path) {
@@ -127,6 +128,71 @@ int non_symlink_abspath(const char *path, char *resolved) {
   }
   return 0;
 }
+int rate_move_merge(char *old_path, char *new_path) {
+  struct stat source;
+  struct stat target;
+  struct dirent *entry;
+  DIR *directory;
+  char source_path[path_max];
+  char target_path[path_max];
+  int failed;
+
+  if (lstat(new_path, &target) == 0) {
+    if (lstat(old_path, &source) != 0) {
+      perror("lstat");
+      return -1;
+    }
+    if (S_ISDIR(source.st_mode) && S_ISDIR(target.st_mode)) {
+      directory = opendir(old_path);
+      if (!directory) {
+        perror("opendir");
+        return -1;
+      }
+      failed = 0;
+      while (1) {
+        errno = 0;
+        entry = readdir(directory);
+        if (!entry) {
+          if (errno) {
+            perror("readdir");
+            failed = 1;
+          }
+          break;
+        }
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+        if (snprintf(source_path, sizeof(source_path), "%s/%s", old_path, entry->d_name) >= path_max ||
+            snprintf(target_path, sizeof(target_path), "%s/%s", new_path, entry->d_name) >= path_max) {
+          fprintf(stderr, "path too long: %s/%s\n", old_path, entry->d_name);
+          failed = 1;
+          continue;
+        }
+        if (rate_move_merge(source_path, target_path) != 0) failed = 1;
+      }
+      if (closedir(directory) != 0) {
+        perror("closedir");
+        failed = 1;
+      }
+      if (failed) return -1;
+      if (rmdir(old_path) != 0) {
+        perror("rmdir");
+        return -1;
+      }
+      return 0;
+    }
+    fprintf(stderr, "target file %s already exists\n", new_path);
+    return -1;
+  }
+  if (errno != ENOENT) {
+    perror("lstat");
+    return -1;
+  }
+  if (rename(old_path, new_path) != 0) {
+    perror("rename");
+    return -1;
+  }
+  printf("moved %s to %s\n", old_path, new_path);
+  return 0;
+}
 int main(int argc, char **argv) {
   int16_t new_rating;
   uint8_t options;
@@ -191,18 +257,7 @@ int main(int argc, char **argv) {
       ensure_directory_structure(new_path);
       *dir_end = '/';
     }
-    struct stat st;
-    if (stat(new_path, &st) == 0) {
-      fprintf(stderr, "target file %s already exists\n", new_path);
-      continue;
-    }
-    if (rename(old_path, new_path) != 0) {
-      perror("rename");
-      continue;
-    }
-    else {
-      printf("moved %s to %s\n", old_path, new_path);
-    }
+    rate_move_merge(old_path, new_path);
   }
   return 0;
 }
