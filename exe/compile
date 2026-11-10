@@ -9,13 +9,16 @@ else
 fi
 
 warnings="-Wall -Wfatal-errors"
-compiler_options="-std=c17 -pedantic-errors -D_POSIX_C_SOURCE=200809L -D_FILE_OFFSET_BITS=64 $warnings -fno-common -fno-math-errno -O$optimisation -static -march=x86-64"
+compiler_options="-std=c17 -pedantic-errors -D_POSIX_C_SOURCE=200809L -D_FILE_OFFSET_BITS=64 $warnings -fno-common -fno-math-errno -O$optimisation -march=x86-64"
 
 prefix=exe/compiled
 mkdir -p "$prefix"
 
 for name in drop-long-lines files-filter replace-string rate lines-filter splice is-empty-directory unique-name line-length stemname rename-lowercase group mount-home
 do
-  "$compiler" $compiler_options "src/$name.c" -o "$prefix/$name"
+  "$compiler" $compiler_options -static "src/$name.c" -o "$prefix/$name"
   chmod +x "$prefix/$name"
 done
+
+gcc $compiler_options $(pkg-config --cflags gtk4) src/group-gui.c -o "$prefix/group-gui" $(pkg-config --libs gtk4)
+chmod +x "$prefix/group-gui"
